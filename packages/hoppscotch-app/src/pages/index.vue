@@ -1,8 +1,10 @@
 <template>
   <AppPaneLayout layout-id="http">
     <template #primary>
-      <HttpRequest />
-      <HttpRequestOptions />
+      <HttpTabHeader>
+        <HttpRequest />
+        <HttpRequestOptions />
+      </HttpTabHeader>
     </template>
     <template #secondary>
       <HttpResponse />
