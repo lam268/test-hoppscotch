@@ -20,7 +20,9 @@
                 :value="newMethod"
                 :readonly="!isCustomMethod"
                 :placeholder="`${t('request.method')}`"
-                @input="onSelectMethod($event.target.value)"
+                @input="
+                  onSelectMethod(($event?.target as HTMLInputElement).value)
+                "
               />
             </span>
             <template #content="{ hide }">
@@ -459,7 +461,7 @@ const copyShareLink = (shareLink: string) => {
     const time = new Date().toLocaleTimeString()
     const date = new Date().toLocaleDateString()
     navigator.share({
-      title: "Hoppscotch",
+      title: "Tokyotechlab",
       text: `Hoppscotch • Open source API development ecosystem at ${time} on ${date}`,
       url: link,
     })

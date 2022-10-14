@@ -37,14 +37,14 @@
     <a href="https://hoppscotch.io/#gh-light-mode-only" target="_blank">
       <img
         src="./packages/hoppscotch-app/public/images/banner-light.png"
-        alt="Hoppscotch"
+        alt="Tokyotechlab"
         width="100%"
       />
     </a>
     <a href="https://hoppscotch.io/#gh-dark-mode-only" target="_blank">
       <img
         src="./packages/hoppscotch-app/public/images/banner-dark.png"
-        alt="Hoppscotch"
+        alt="Tokyotechlab"
         width="100%"
       />
     </a>

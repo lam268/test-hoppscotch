@@ -1,21 +1,21 @@
 import DispatchingStore, { defineDispatchers } from "./DispatchingStore"
+import type { HoppRESTRequest } from "@hoppscotch/data"
+import { getDefaultRESTRequest } from "~/newstore/RESTSession"
 
-export interface ITab {
-  target: string
-  title: string
+export interface ITab extends HoppRESTRequest {
+  isActive?: boolean
+}
+
+export const makeNewRESTRequest = (id?: string): ITab => {
+  return {
+    ...getDefaultRESTRequest(),
+    id: id || "",
+    isActive: false,
+  }
 }
 
 const defaultTabRequests = {
-  state: [
-    {
-      target: "websocket",
-      title: "websocket",
-    },
-    {
-      target: "sse",
-      title: "sse",
-    },
-  ] as ITab[],
+  state: [makeNewRESTRequest("tab-0")] as ITab[],
 }
 
 type TabRequestsStoreType = typeof defaultTabRequests
@@ -27,9 +27,29 @@ const tabRequestsDispatcher = defineDispatchers({
     }
   },
 
-  removeTab({ state }: TabRequestsStoreType, index: number) {
+  removeTab({ state }: TabRequestsStoreType, tabId: string) {
     return {
-      state: state.splice(index, 1),
+      state: state.filter((tab) => tab.id !== tabId),
+    }
+  },
+  updateTab(
+    { state }: TabRequestsStoreType,
+    { index, request }: { index: number; request: ITab }
+  ) {
+    const newState = [...state]
+    newState[index] = request
+    return {
+      state: newState,
+    }
+  },
+
+  setActiveTab({ state }: TabRequestsStoreType, tabId: string) {
+    const newState = [...state]
+    return {
+      state: newState.map((tab) => {
+        tab.isActive = tab.id === tabId
+        return tab
+      }),
     }
   },
 })
@@ -38,3 +58,7 @@ export const tabRequestStore = new DispatchingStore(
   defaultTabRequests,
   tabRequestsDispatcher
 )
+
+export const getActiveTabRequest = () => {
+  return tabRequestStore.value.state.find((tab) => tab.isActive)
+}

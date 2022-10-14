@@ -258,7 +258,7 @@ const nativeShare = () => {
   if (navigator.share) {
     navigator
       .share({
-        title: "Hoppscotch",
+        title: "Tokyotechlab",
         text: "Hoppscotch • Open source API development ecosystem - Helps you create requests faster, saving precious time on development.",
         url: "https://hoppscotch.io",
       })

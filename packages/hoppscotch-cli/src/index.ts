@@ -11,7 +11,7 @@ const accent = chalk.greenBright;
  * * Program Default Configuration
  */
 const CLI_BEFORE_ALL_TXT = `hopp: The ${accent(
-  "Hoppscotch"
+  "Tokyotechlab"
 )} CLI - Version ${version} (${accent(
   "https://hoppscotch.io"
 )}) ${chalk.black.bold.bgYellowBright(" ALPHA ")} \n`;

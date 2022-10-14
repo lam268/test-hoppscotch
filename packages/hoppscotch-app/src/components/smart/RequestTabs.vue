@@ -1,61 +1,57 @@
 <template>
-  <div
-    class="flex flex-1 h-full flex-nowrap"
-    :class="{ 'flex-col h-auto': !vertical }"
-  >
-    <div
-      class="relative tabs border-dividerLight"
-      :class="[vertical ? 'border-r' : 'border-b', styles]"
-    >
+  <div class="flex flex-1 h-full flex-nowrap flex-col h-auto">
+    <div class="relative tabs border-dividerLight border-b" :class="[styles]">
       <div class="flex flex-1">
-        <div
-          class="flex justify-between flex-1"
-          :class="{ 'flex-col': vertical }"
-        >
-          <div class="flex" :class="{ 'flex-col space-y-2 p-2': vertical }">
+        <div class="flex justify-between flex-1 h-10">
+          <div class="flex">
             <button
               v-for="([tabID, tabMeta], index) in tabEntries"
               :key="`tab-${index}`"
-              v-tippy="{
-                theme: 'tooltip',
-                placement: 'left',
-                content: vertical ? tabMeta.label : null,
-              }"
-              class="tab"
+              class="tab group"
               :class="[
                 { active: modelValue === tabID },
-                { vertical: vertical },
                 { 'opacity-75 !cursor-not-allowed': tabMeta.disabled },
               ]"
-              :aria-label="tabMeta.label || ''"
+              :aria-label="tabMeta.name || ''"
               :disabled="tabMeta.disabled"
               role="button"
               @keyup.enter="selectTab(tabID)"
               @click="selectTab(tabID)"
             >
-              <component
-                :is="tabMeta.icon"
-                v-if="tabMeta.icon"
-                class="svg-icons"
-              />
-              <span v-else-if="tabMeta.label">{{ tabMeta.label }}</span>
+              <!--  -->
               <span
-                v-if="tabMeta.info && tabMeta.info !== 'null'"
-                class="tab-info"
+                class="w-14 pr-2 truncate cursor-pointer"
+                :class="getRequestLabelColor(tabMeta.method)"
               >
-                {{ tabMeta.info }}
+                <span class="font-semibold text-tiny">
+                  {{ tabMeta.method }}
+                </span>
               </span>
               <span
-                v-if="tabMeta.indicator"
-                class="w-1 h-1 ml-2 rounded-full bg-accentLight"
-              ></span>
+                class="flex items-center flex-1 min-w-0 py-2 pr-2 cursor-pointer transition group-hover:text-secondaryDark"
+              >
+                <span
+                  class="truncate"
+                  :class="{ 'text-accent text-white': modelValue === tabID }"
+                >
+                  {{ tabMeta.name }}
+                </span>
+              </span>
+              <ButtonSecondary
+                v-tippy="{ theme: 'tooltip' }"
+                :icon="IconX"
+                :title="t('action.close')"
+                class="hidden group-hover:inline-flex float-center"
+                @click="closeTabButton(tabID)"
+              />
             </button>
+
             <ButtonSecondary
               v-tippy="{ theme: 'tooltip', allowHTML: true }"
               title="Add"
               :icon="IconPlus"
-              class="rounded hover:bg-primaryDark focus-visible:bg-primaryDark"
-              @click="clickAddBtn"
+              class="rounded hover:bg-primaryDark focus-visible:bg-primaryDark z-10 inline-flex"
+              @click="addTabButton"
             />
           </div>
           <div class="flex items-center justify-center">
@@ -64,12 +60,28 @@
         </div>
       </div>
     </div>
-    <div
-      class="w-full h-full contents"
-      :class="{
-        '!flex flex-col flex-1 overflow-y-auto ': vertical,
-      }"
-    >
+    <div class="w-full h-full contents">
+      <div
+        v-if="emptyState"
+        class="flex flex-col items-center justify-center p-4 text-secondaryLight"
+      >
+        <div class="flex flex-col pb-4 my-4">
+          <img
+            :src="`/images/postman.svg`"
+            loading="lazy"
+            class="w-[150px] h-[150px] my-4 inline-flex mx-auto"
+            :alt="t('empty.collections')"
+          />
+          <ButtonSecondary
+            :label="`Create new request`"
+            :icon="IconPlus"
+            blank
+            outline
+            reverse
+            @click="addTabButton"
+          />
+        </div>
+      </div>
       <slot></slot>
     </div>
   </div>
@@ -80,17 +92,18 @@ import { pipe } from "fp-ts/function"
 import { not } from "fp-ts/Predicate"
 import * as A from "fp-ts/Array"
 import * as O from "fp-ts/Option"
-import type { Component } from "vue"
 import IconPlus from "~icons/lucide/plus"
+import IconX from "~icons/lucide/x"
 import { ref, ComputedRef, computed, provide } from "vue"
 import { throwError } from "~/helpers/functional/error"
+import { useI18n } from "@composables/i18n"
+import { tabRequestStore, makeNewRESTRequest } from "~/newstore/tabRequest"
 
 export type TabMeta = {
-  label: string | null
-  icon: string | Component | null
   indicator: boolean
-  info: string | null
   disabled: boolean
+  name: string
+  method: string
 }
 
 export type TabProvider = {
@@ -111,10 +124,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  vertical: {
-    type: Boolean,
-    default: false,
-  },
   modelValue: {
     type: String,
     required: true,
@@ -126,9 +135,48 @@ const emit = defineEmits<{
 }>()
 
 const tabEntries = ref<Array<[string, TabMeta]>>([])
+const emptyState = computed(() => tabEntries.value.length === 0)
+const t = useI18n()
 
-const clickAddBtn = () => {
-  console.log("hehe")
+const requestMethodLabels = {
+  get: "text-green-500",
+  post: "text-yellow-500",
+  put: "text-blue-500",
+  delete: "text-red-500",
+  default: "text-gray-500",
+}
+
+const getRequestLabelColor = (method: string) =>
+  requestMethodLabels[
+    method.toLowerCase() as keyof typeof requestMethodLabels
+  ] || requestMethodLabels.default
+
+const addTabButton = () => {
+  let i = tabEntries.value.length
+  while (tabEntries.value.some(([tabID]) => tabID === `tab-${i}`)) {
+    i++
+  }
+  const newRequest = makeNewRESTRequest(`tab-${i}`)
+  selectTab(`tab-${i}`)
+  tabRequestStore.dispatch({
+    dispatcher: "addTab",
+    payload: newRequest,
+  })
+}
+
+const closeTabButton = (tabID: string) => {
+  tabEntries.value = tabEntries.value.filter(([id]) => id !== tabID)
+  tabRequestStore.dispatch({
+    dispatcher: "removeTab",
+    payload: tabID,
+  })
+  if (props.modelValue === tabID) {
+    if (tabEntries.value.length > 1) {
+      selectTab(tabEntries.value[0][0])
+    } else {
+      selectTab("")
+    }
+  }
 }
 
 const addTabEntry = (tabID: string, meta: TabMeta) => {
@@ -155,16 +203,20 @@ const updateTabEntry = (tabID: string, newMeta: TabMeta) => {
 }
 
 const removeTabEntry = (tabID: string) => {
-  tabEntries.value = pipe(
-    tabEntries.value,
-    A.findIndex(([id]) => id === tabID),
-    O.chain((index) => pipe(tabEntries.value, A.deleteAt(index))),
-    O.getOrElseW(() => throwError(`Failed to remove tab entry: ${tabID}`))
-  )
+  // check is exists tabID in tabEntries
+  const isExists = tabEntries.value.some(([id]) => id === tabID)
+  if (isExists) {
+    tabEntries.value = pipe(
+      tabEntries.value,
+      A.findIndex(([id]) => id === tabID),
+      O.chain((index) => pipe(tabEntries.value, A.deleteAt(index))),
+      O.getOrElseW(() => throwError(`Failed to remove tab entry: ${tabID}`))
+    )
 
-  // If we tried to remove the active tabEntries, switch to first tab entry
-  if (props.modelValue === tabID)
-    if (tabEntries.value.length > 0) selectTab(tabEntries.value[0][0])
+    // If we tried to remove the active tabEntries, switch to first tab entry
+    if (props.modelValue === tabID)
+      if (tabEntries.value.length > 0) selectTab(tabEntries.value[0][0])
+  }
 }
 
 provide<TabProvider>("tabs-system", {
@@ -177,6 +229,10 @@ provide<TabProvider>("tabs-system", {
 
 const selectTab = (id: string) => {
   emit("update:modelValue", id)
+  tabRequestStore.dispatch({
+    dispatcher: "setActiveTab",
+    payload: id,
+  })
 }
 </script>
 
@@ -187,15 +243,15 @@ const selectTab = (id: string) => {
   @apply overflow-auto;
   @apply flex-shrink-0;
 
-  // &::after {
-  //   @apply absolute;
-  //   @apply inset-x-0;
-  //   @apply bottom-0;
-  //   @apply bg-dividerLight;
-  //   @apply z-1;
-  //   @apply h-0.5;
-  //   content: "";
-  // }
+  &::after {
+    @apply absolute;
+    @apply inset-x-0;
+    @apply bottom-0;
+    @apply bg-dividerLight;
+    @apply z-1;
+    @apply h-0.5;
+    content: "";
+  }
 
   .tab {
     @apply relative;
@@ -203,17 +259,16 @@ const selectTab = (id: string) => {
     @apply flex-shrink-0;
     @apply items-center;
     @apply justify-center;
-    @apply py-2 px-4;
+    @apply py-2;
     @apply text-secondary;
     @apply font-semibold;
     @apply cursor-pointer;
     @apply hover: text-secondaryDark;
     @apply focus: outline-none;
     @apply focus-visible: text-secondaryDark;
-    border: 1px solid #e5e7eb;
-    border-left: none;
-    border-bottom: 0px;
-    width: 100px;
+    @apply max-w-[150px];
+    @apply border-r-2;
+    @apply border-dividerLight;
 
     .tab-info {
       @apply inline-flex;
@@ -248,7 +303,7 @@ const selectTab = (id: string) => {
 
       .tab-info {
         @apply text-secondary;
-        @apply border-dividerDark;
+        @apply border-dividerLight;
       }
 
       &::after {
@@ -269,7 +324,7 @@ const selectTab = (id: string) => {
 
         .tab-info {
           @apply text-secondary;
-          @apply border-dividerDark;
+          @apply border-dividerLight;
         }
 
         &::after {

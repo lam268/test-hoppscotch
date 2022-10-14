@@ -10,3 +10,6 @@ static
 components.d.ts
 src/types
 src/helpers/backend/graphql.ts
+*.svg
+*.xml
+*.txt

@@ -1,10 +1,12 @@
+<!-- eslint-disable vue/valid-v-model -->
 <template>
-  <SmartRequestTabs v-model="currentRequest">
+  <SmartRequestTabs v-model="(currentRequest as string)">
     <SmartRequestTab
-      v-for="{ target, title } in tabRequestStore.value.state"
-      :id="target"
-      :key="target"
-      :label="title"
+      v-for="(tab, index) in tabRequestStore.value.state"
+      :id="tab.id || 'tab-' + index"
+      :key="tab.id || 'tab-' + index"
+      :name="tab.name"
+      :method="tab.method"
     >
       <slot></slot>
     </SmartRequestTab>
@@ -13,9 +15,11 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { tabRequestStore } from "~/newstore/tabRequest"
+import { tabRequestStore, ITab } from "~/newstore/tabRequest"
 
-const currentRequest = ref("websocket")
+const currentRequest = ref<ITab["id"] | null>(
+  tabRequestStore.value.state[0].id || null
+)
 </script>
 
 <route lang="yaml">

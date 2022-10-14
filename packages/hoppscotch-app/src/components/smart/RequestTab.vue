@@ -5,45 +5,30 @@
 </template>
 
 <script setup lang="ts">
-import {
-  onMounted,
-  onBeforeUnmount,
-  inject,
-  computed,
-  watch,
-  Component,
-  markRaw,
-} from "vue"
+import { onMounted, onBeforeUnmount, inject, computed, watch } from "vue"
 import { TabMeta, TabProvider } from "./RequestTabs.vue"
 
 const props = withDefaults(
   defineProps<{
     id: string
-    label: string
-    icon?: Component | object | string | null
-    info?: string | null
-    indicator?: boolean
+    name?: string
+    method?: string
     disabled?: boolean
+    indicator?: boolean
   }>(),
   {
-    icon: null,
-    indicator: false,
-    info: null,
+    name: "Untitled Request",
+    method: "GET",
     disabled: false,
+    indicator: false,
   }
 )
 
 const tabMeta = computed<TabMeta>(() => ({
-  // props.icon can store a component, which should not be made deeply reactive
-  icon:
-    props.icon && typeof props.icon === "object"
-      ? markRaw(props.icon)
-      : props.icon,
-
-  indicator: props.indicator,
-  info: props.info,
-  label: props.label,
+  name: props.name,
+  method: props.method,
   disabled: props.disabled,
+  indicator: props.indicator,
 }))
 
 const {

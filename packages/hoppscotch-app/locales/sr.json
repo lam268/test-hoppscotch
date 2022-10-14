@@ -61,11 +61,11 @@
     "help": "Помоћ, повратне информације и документација",
     "home": "Кућа",
     "invite": "Позови",
-    "invite_description": "У Хоппсцотцх -у смо дизајнирали једноставан и интуитиван интерфејс за креирање и управљање вашим АПИ -јима. Хоппсцотцх је алатка која вам помаже у изградњи, тестирању, документовању и дељењу ваших АПИ -ја.",
+    "invite_description": "У Tokyotechlab -у смо дизајнирали једноставан и интуитиван интерфејс за креирање и управљање вашим АПИ -јима. Tokyotechlab је алатка која вам помаже у изградњи, тестирању, документовању и дељењу ваших АПИ -ја.",
     "invite_your_friends": "Позвати своје пријатеље",
     "join_discord_community": "Придружите се нашој заједници Дисцорд",
     "keyboard_shortcuts": "Пречице на тастатури",
-    "name": "Хоппсцотцх",
+    "name": "Tokyotechlab",
     "new_version_found": "Нова верзија је пронађена. Освежите да бисте ажурирали.",
     "options": "Options",
     "proxy_privacy_policy": "Политика приватности посредника",
@@ -94,7 +94,7 @@
     "logged_out": "Одјављени",
     "login": "Пријавите се",
     "login_success": "Пријављени сте",
-    "login_to_hoppscotch": "Пријавите се на Хоппсцотцх",
+    "login_to_hoppscotch": "Пријавите се на Tokyotechlab",
     "logout": "Одјавити се",
     "re_enter_email": "Поново укуцати имејл",
     "send_magic_link": "Пошаљите чаробну везу",
@@ -151,7 +151,7 @@
   },
   "documentation": {
     "generate": "Направите документацију",
-    "generate_message": "Увезите било коју Хоппсцотцх колекцију за генерисање АПИ документације у покрету."
+    "generate_message": "Увезите било коју Tokyotechlab колекцију за генерисање АПИ документације у покрету."
   },
   "empty": {
     "authorization": "Овај захтев не користи никаква овлашћења",
@@ -430,7 +430,7 @@
     "interceptor_description": "Средњи софтвер између апликација и АПИ -ја.",
     "language": "Језик",
     "light_mode": "Лигхт",
-    "official_proxy_hosting": "Хоппсцотцх угошћује званични проки.",
+    "official_proxy_hosting": "Tokyotechlab угошћује званични проки.",
     "profile": "Profile",
     "profile_description": "Update your profile details",
     "profile_email": "Email address",
@@ -476,7 +476,7 @@
       "title": "Генерал"
     },
     "miscellaneous": {
-      "invite": "Позовите људе у Хоппсцотцх",
+      "invite": "Позовите људе у Tokyotechlab",
       "title": "Остало"
     },
     "navigation": {
@@ -578,7 +578,7 @@
     "changelog": "Прочитајте више о најновијим издањима",
     "chat": "Имате питања? Ћаскајте са нама!",
     "community": "Постављајте питања и помажете другима",
-    "documentation": "Прочитајте више о Хоппсцотцх -у",
+    "documentation": "Прочитајте више о Tokyotechlab -у",
     "forum": "Постављајте питања и добијте одговоре",
     "github": "Follow us on Github",
     "shortcuts": "Брже прегледајте апликацију",
