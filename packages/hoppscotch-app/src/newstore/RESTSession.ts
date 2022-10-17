@@ -10,6 +10,11 @@ import {
   HoppRESTAuth,
   ValidContentTypes,
 } from "@hoppscotch/data"
+import {
+  tabRequestStore,
+  getActiveTabIndex,
+  getActiveTabRequest,
+} from "~/newstore/tabRequest"
 import DispatchingStore, { defineDispatchers } from "./DispatchingStore"
 import { HoppRESTResponse } from "~/helpers/types/HoppRESTResponse"
 import { useStream } from "@composables/stream"
@@ -50,6 +55,19 @@ const defaultRESTSession: RESTSession = {
   saveContext: null,
 }
 
+export const updateTabRequest = (payload: any) => {
+  tabRequestStore.dispatch({
+    dispatcher: "updateTab",
+    payload: {
+      index: getActiveTabIndex(),
+      request: {
+        ...getActiveTabRequest(),
+        ...payload,
+      },
+    },
+  })
+}
+
 const dispatchers = defineDispatchers({
   setRequest(_: RESTSession, { req }: { req: HoppRESTRequest }) {
     return {
@@ -57,6 +75,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setRequestName(curr: RESTSession, { newName }: { newName: string }) {
+    updateTabRequest({ name: newName })
     return {
       request: {
         ...curr.request,
@@ -65,6 +84,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setEndpoint(curr: RESTSession, { newEndpoint }: { newEndpoint: string }) {
+    updateTabRequest({ endpoint: newEndpoint })
     return {
       request: {
         ...curr.request,
@@ -73,6 +93,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setParams(curr: RESTSession, { entries }: { entries: HoppRESTParam[] }) {
+    updateTabRequest({ params: entries })
     return {
       request: {
         ...curr.request,
@@ -81,10 +102,12 @@ const dispatchers = defineDispatchers({
     }
   },
   addParam(curr: RESTSession, { newParam }: { newParam: HoppRESTParam }) {
+    const newParams = [...curr.request.params, newParam]
+    updateTabRequest({ params: newParams })
     return {
       request: {
         ...curr.request,
-        params: [...curr.request.params, newParam],
+        params: newParams,
       },
     }
   },
@@ -97,6 +120,7 @@ const dispatchers = defineDispatchers({
       else return param
     })
 
+    updateTabRequest({ params: newParams })
     return {
       request: {
         ...curr.request,
@@ -106,6 +130,7 @@ const dispatchers = defineDispatchers({
   },
   deleteParam(curr: RESTSession, { index }: { index: number }) {
     const newParams = curr.request.params.filter((_x, i) => i !== index)
+    updateTabRequest({ params: newParams })
 
     return {
       request: {
@@ -115,6 +140,7 @@ const dispatchers = defineDispatchers({
     }
   },
   deleteAllParams(curr: RESTSession) {
+    updateTabRequest({ params: [] })
     return {
       request: {
         ...curr.request,
@@ -123,6 +149,7 @@ const dispatchers = defineDispatchers({
     }
   },
   updateMethod(curr: RESTSession, { newMethod }: { newMethod: string }) {
+    updateTabRequest({ method: newMethod })
     return {
       request: {
         ...curr.request,
@@ -131,6 +158,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setHeaders(curr: RESTSession, { entries }: { entries: HoppRESTHeader[] }) {
+    updateTabRequest({ headers: entries })
     return {
       request: {
         ...curr.request,
@@ -139,10 +167,12 @@ const dispatchers = defineDispatchers({
     }
   },
   addHeader(curr: RESTSession, { entry }: { entry: HoppRESTHeader }) {
+    const newHeaders = [...curr.request.headers, entry]
+    updateTabRequest({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
-        headers: [...curr.request.headers, entry],
+        headers: newHeaders,
       },
     }
   },
@@ -150,25 +180,30 @@ const dispatchers = defineDispatchers({
     curr: RESTSession,
     { index, updatedEntry }: { index: number; updatedEntry: HoppRESTHeader }
   ) {
+    const newHeaders = curr.request.headers.map((header, i) => {
+      if (i === index) return updatedEntry
+      else return header
+    })
+    updateTabRequest({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
-        headers: curr.request.headers.map((header, i) => {
-          if (i === index) return updatedEntry
-          else return header
-        }),
+        headers: newHeaders,
       },
     }
   },
   deleteHeader(curr: RESTSession, { index }: { index: number }) {
+    const newHeaders = curr.request.headers.filter((_x, i) => i !== index)
+    updateTabRequest({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
-        headers: curr.request.headers.filter((_, i) => i !== index),
+        headers: newHeaders,
       },
     }
   },
   deleteAllHeaders(curr: RESTSession) {
+    updateTabRequest({ headers: [] })
     return {
       request: {
         ...curr.request,
@@ -177,6 +212,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setAuth(curr: RESTSession, { newAuth }: { newAuth: HoppRESTAuth }) {
+    updateTabRequest({ auth: newAuth })
     return {
       request: {
         ...curr.request,
@@ -185,6 +221,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setPreRequestScript(curr: RESTSession, { newScript }: { newScript: string }) {
+    updateTabRequest({ preRequestScript: newScript })
     return {
       request: {
         ...curr.request,
@@ -193,6 +230,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setTestScript(curr: RESTSession, { newScript }: { newScript: string }) {
+    updateTabRequest({ testScript: newScript })
     return {
       request: {
         ...curr.request,
@@ -205,10 +243,12 @@ const dispatchers = defineDispatchers({
     { newContentType }: { newContentType: ValidContentTypes | null }
   ) {
     // TODO: persist body evenafter switching content typees
+    const newBody = applyBodyTransition(curr.request.body, newContentType)
+    updateTabRequest({ body: newBody })
     return {
       request: {
         ...curr.request,
-        body: applyBodyTransition(curr.request.body, newContentType),
+        body: newBody,
       },
     }
   },
@@ -216,13 +256,15 @@ const dispatchers = defineDispatchers({
     // Only perform update if the current content-type is formdata
     if (curr.request.body.contentType !== "multipart/form-data") return {}
 
+    const newBody: HoppRESTReqBody = {
+      contentType: "multipart/form-data",
+      body: [...curr.request.body.body, entry],
+    }
+    updateTabRequest({ body: newBody })
     return {
       request: {
         ...curr.request,
-        body: <HoppRESTReqBody>{
-          contentType: "multipart/form-data",
-          body: [...curr.request.body.body, entry],
-        },
+        body: newBody,
       },
     }
   },
@@ -230,13 +272,16 @@ const dispatchers = defineDispatchers({
     // Only perform update if the current content-type is formdata
     if (curr.request.body.contentType !== "multipart/form-data") return {}
 
+    const newBody: HoppRESTReqBody = {
+      contentType: "multipart/form-data",
+      body: curr.request.body.body.filter((_x, i) => i !== index),
+    }
+    updateTabRequest({ body: newBody })
+
     return {
       request: {
         ...curr.request,
-        body: <HoppRESTReqBody>{
-          contentType: "multipart/form-data",
-          body: curr.request.body.body.filter((_, i) => i !== index),
-        },
+        body: newBody,
       },
     }
   },
@@ -247,13 +292,17 @@ const dispatchers = defineDispatchers({
     // Only perform update if the current content-type is formdata
     if (curr.request.body.contentType !== "multipart/form-data") return {}
 
+    const newBody: HoppRESTReqBody = {
+      contentType: "multipart/form-data",
+      body: curr.request.body.body.map((x, i) => (i !== index ? x : entry)),
+    }
+
+    updateTabRequest({ body: newBody })
+
     return {
       request: {
         ...curr.request,
-        body: <HoppRESTReqBody>{
-          contentType: "multipart/form-data",
-          body: curr.request.body.body.map((x, i) => (i !== index ? x : entry)),
-        },
+        body: newBody,
       },
     }
   },
@@ -261,17 +310,22 @@ const dispatchers = defineDispatchers({
     // Only perform update if the current content-type is formdata
     if (curr.request.body.contentType !== "multipart/form-data") return {}
 
+    const newBody: HoppRESTReqBody = {
+      contentType: "multipart/form-data",
+      body: [],
+    }
+
+    updateTabRequest({ body: newBody })
+
     return {
       request: {
         ...curr.request,
-        body: <HoppRESTReqBody>{
-          contentType: "multipart/form-data",
-          body: [],
-        },
+        body: newBody,
       },
     }
   },
   setRequestBody(curr: RESTSession, { newBody }: { newBody: HoppRESTReqBody }) {
+    updateTabRequest({ body: newBody })
     return {
       request: {
         ...curr.request,

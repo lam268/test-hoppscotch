@@ -8,7 +8,10 @@
       :title="`${duration}`"
       @click="emit('use-entry')"
     >
-      <span class="font-semibold truncate text-tiny">
+      <span
+        class="font-semibold truncate text-tiny"
+        :class="getRequestLabelColor(entry.request.method)"
+      >
         {{ entry.request.method }}
       </span>
     </span>
@@ -70,6 +73,19 @@ const emit = defineEmits<{
 }>()
 
 const t = useI18n()
+
+const requestMethodLabels = {
+  get: "text-green-500",
+  post: "text-yellow-500",
+  put: "text-blue-500",
+  delete: "text-red-500",
+  default: "text-gray-500",
+}
+
+const getRequestLabelColor = (method: string) =>
+  requestMethodLabels[
+    method.toLowerCase() as keyof typeof requestMethodLabels
+  ] || requestMethodLabels.default
 
 const duration = computed(() => {
   if (props.entry.responseMeta.duration) {

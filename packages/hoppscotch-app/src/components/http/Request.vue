@@ -338,6 +338,7 @@ const newSendRequest = async () => {
         if (loading.value) {
           // Check exists because, loading can be set to false
           // when cancelled
+          console.log("Updating response", responseState)
           updateRESTResponse(responseState)
         }
       },

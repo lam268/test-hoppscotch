@@ -16,10 +16,9 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import { tabRequestStore, ITab } from "~/newstore/tabRequest"
+const firstTab = tabRequestStore.value.state[0]
 
-const currentRequest = ref<ITab["id"] | null>(
-  tabRequestStore.value.state[0].id || null
-)
+const currentRequest = ref<ITab["id"] | null>(firstTab ? firstTab.id : null)
 </script>
 
 <route lang="yaml">

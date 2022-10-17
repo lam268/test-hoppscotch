@@ -175,6 +175,13 @@ import {
   setRESTSaveContext,
   getRESTSaveContext,
 } from "~/newstore/RESTSession"
+import {
+  // getActiveTabRequest,
+  EventBus,
+  tabRequestStore,
+  translateToNewTabRequest,
+  // getTabRequestById,
+} from "~/newstore/tabRequest"
 import { editRESTRequest } from "~/newstore/collections"
 import { runMutation } from "~/helpers/backend/GQLClient"
 import { UpdateRequestDocument } from "~/helpers/backend/graphql"
@@ -307,20 +314,25 @@ const getRequestLabelColor = (method: string) =>
   ] || requestMethodLabels.default
 
 const setRestReq = (request: any) => {
-  setRESTRequest(
-    cloneDeep(
-      safelyExtractRESTRequest(
-        translateToNewRequest(request),
-        getDefaultRESTRequest()
-      )
-    ),
-    {
-      originLocation: "user-collection",
-      folderPath: props.folderPath,
-      requestIndex: props.requestIndex,
-      req: cloneDeep(request),
-    }
+  const restReq = cloneDeep(
+    safelyExtractRESTRequest(
+      translateToNewRequest(request),
+      getDefaultRESTRequest()
+    )
   )
+  const context = {
+    originLocation: "user-collection",
+    folderPath: props.folderPath,
+    requestIndex: props.requestIndex,
+    req: restReq,
+  }
+  setRESTRequest(restReq, context as HoppRequestSaveContext)
+  const newTabReq = cloneDeep(translateToNewTabRequest(restReq))
+  tabRequestStore.dispatch({
+    dispatcher: "addTab",
+    payload: newTabReq,
+  })
+  EventBus.emit("update:activeTab", newTabReq.id as string)
 }
 
 /** Loads request from the save once, checks for unsaved changes, but ignores default values */

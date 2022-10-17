@@ -97,7 +97,14 @@ import IconX from "~icons/lucide/x"
 import { ref, ComputedRef, computed, provide } from "vue"
 import { throwError } from "~/helpers/functional/error"
 import { useI18n } from "@composables/i18n"
-import { tabRequestStore, makeNewRESTRequest } from "~/newstore/tabRequest"
+import {
+  tabRequestStore,
+  makeNewRESTRequest,
+  EventBus,
+} from "~/newstore/tabRequest"
+import { cloneDeep } from "lodash-es"
+import { translateToNewRequest } from "@hoppscotch/data"
+import { setRESTRequest } from "~/newstore/RESTSession"
 
 export type TabMeta = {
   indicator: boolean
@@ -152,8 +159,8 @@ const getRequestLabelColor = (method: string) =>
   ] || requestMethodLabels.default
 
 const addTabButton = () => {
-  let i = tabEntries.value.length
-  while (tabEntries.value.some(([tabID]) => tabID === `tab-${i}`)) {
+  let i = tabRequestStore.value.state.length
+  while (tabRequestStore.value.state.some((tab) => tab.id === `tab-${i}`)) {
     i++
   }
   const newRequest = makeNewRESTRequest(`tab-${i}`)
@@ -233,7 +240,15 @@ const selectTab = (id: string) => {
     dispatcher: "setActiveTab",
     payload: id,
   })
+  const activeTab = tabRequestStore.value.state.find((tab) => tab.id === id)
+
+  if (activeTab) {
+    const newCloneTab = translateToNewRequest(cloneDeep(activeTab))
+    setRESTRequest(newCloneTab)
+  }
 }
+
+EventBus.on("update:activeTab", (id) => selectTab(id))
 </script>
 
 <style lang="scss" scoped>
@@ -266,7 +281,7 @@ const selectTab = (id: string) => {
     @apply hover: text-secondaryDark;
     @apply focus: outline-none;
     @apply focus-visible: text-secondaryDark;
-    @apply max-w-[150px];
+    @apply w-[150px];
     @apply border-r-2;
     @apply border-dividerLight;
 
