@@ -10,11 +10,7 @@ import {
   HoppRESTAuth,
   ValidContentTypes,
 } from "@hoppscotch/data"
-import {
-  tabRequestStore,
-  getActiveTabIndex,
-  getActiveTabRequest,
-} from "~/newstore/tabRequest"
+import { updateTabRequest, getActiveTabRequest } from "~/newstore/TABSession"
 import DispatchingStore, { defineDispatchers } from "./DispatchingStore"
 import { HoppRESTResponse } from "~/helpers/types/HoppRESTResponse"
 import { useStream } from "@composables/stream"
@@ -55,17 +51,14 @@ const defaultRESTSession: RESTSession = {
   saveContext: null,
 }
 
-export const updateTabRequest = (payload: any) => {
-  tabRequestStore.dispatch({
-    dispatcher: "updateTab",
-    payload: {
-      index: getActiveTabIndex(),
-      request: {
-        ...getActiveTabRequest(),
-        ...payload,
-      },
-    },
-  })
+export const updateCurrentTab = (payload: any) => {
+  const activeTab = getActiveTabRequest()
+  if (activeTab) {
+    updateTabRequest(activeTab.id as string, {
+      ...activeTab,
+      ...payload,
+    })
+  }
 }
 
 const dispatchers = defineDispatchers({
@@ -75,7 +68,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setRequestName(curr: RESTSession, { newName }: { newName: string }) {
-    updateTabRequest({ name: newName })
+    updateCurrentTab({ name: newName })
     return {
       request: {
         ...curr.request,
@@ -84,7 +77,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setEndpoint(curr: RESTSession, { newEndpoint }: { newEndpoint: string }) {
-    updateTabRequest({ endpoint: newEndpoint })
+    updateCurrentTab({ endpoint: newEndpoint })
     return {
       request: {
         ...curr.request,
@@ -93,7 +86,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setParams(curr: RESTSession, { entries }: { entries: HoppRESTParam[] }) {
-    updateTabRequest({ params: entries })
+    updateCurrentTab({ params: entries })
     return {
       request: {
         ...curr.request,
@@ -103,7 +96,7 @@ const dispatchers = defineDispatchers({
   },
   addParam(curr: RESTSession, { newParam }: { newParam: HoppRESTParam }) {
     const newParams = [...curr.request.params, newParam]
-    updateTabRequest({ params: newParams })
+    updateCurrentTab({ params: newParams })
     return {
       request: {
         ...curr.request,
@@ -120,7 +113,7 @@ const dispatchers = defineDispatchers({
       else return param
     })
 
-    updateTabRequest({ params: newParams })
+    updateCurrentTab({ params: newParams })
     return {
       request: {
         ...curr.request,
@@ -130,7 +123,7 @@ const dispatchers = defineDispatchers({
   },
   deleteParam(curr: RESTSession, { index }: { index: number }) {
     const newParams = curr.request.params.filter((_x, i) => i !== index)
-    updateTabRequest({ params: newParams })
+    updateCurrentTab({ params: newParams })
 
     return {
       request: {
@@ -140,7 +133,7 @@ const dispatchers = defineDispatchers({
     }
   },
   deleteAllParams(curr: RESTSession) {
-    updateTabRequest({ params: [] })
+    updateCurrentTab({ params: [] })
     return {
       request: {
         ...curr.request,
@@ -149,7 +142,7 @@ const dispatchers = defineDispatchers({
     }
   },
   updateMethod(curr: RESTSession, { newMethod }: { newMethod: string }) {
-    updateTabRequest({ method: newMethod })
+    updateCurrentTab({ method: newMethod })
     return {
       request: {
         ...curr.request,
@@ -158,7 +151,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setHeaders(curr: RESTSession, { entries }: { entries: HoppRESTHeader[] }) {
-    updateTabRequest({ headers: entries })
+    updateCurrentTab({ headers: entries })
     return {
       request: {
         ...curr.request,
@@ -168,7 +161,7 @@ const dispatchers = defineDispatchers({
   },
   addHeader(curr: RESTSession, { entry }: { entry: HoppRESTHeader }) {
     const newHeaders = [...curr.request.headers, entry]
-    updateTabRequest({ headers: newHeaders })
+    updateCurrentTab({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
@@ -184,7 +177,7 @@ const dispatchers = defineDispatchers({
       if (i === index) return updatedEntry
       else return header
     })
-    updateTabRequest({ headers: newHeaders })
+    updateCurrentTab({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
@@ -194,7 +187,7 @@ const dispatchers = defineDispatchers({
   },
   deleteHeader(curr: RESTSession, { index }: { index: number }) {
     const newHeaders = curr.request.headers.filter((_x, i) => i !== index)
-    updateTabRequest({ headers: newHeaders })
+    updateCurrentTab({ headers: newHeaders })
     return {
       request: {
         ...curr.request,
@@ -203,7 +196,7 @@ const dispatchers = defineDispatchers({
     }
   },
   deleteAllHeaders(curr: RESTSession) {
-    updateTabRequest({ headers: [] })
+    updateCurrentTab({ headers: [] })
     return {
       request: {
         ...curr.request,
@@ -212,7 +205,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setAuth(curr: RESTSession, { newAuth }: { newAuth: HoppRESTAuth }) {
-    updateTabRequest({ auth: newAuth })
+    updateCurrentTab({ auth: newAuth })
     return {
       request: {
         ...curr.request,
@@ -221,7 +214,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setPreRequestScript(curr: RESTSession, { newScript }: { newScript: string }) {
-    updateTabRequest({ preRequestScript: newScript })
+    updateCurrentTab({ preRequestScript: newScript })
     return {
       request: {
         ...curr.request,
@@ -230,7 +223,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setTestScript(curr: RESTSession, { newScript }: { newScript: string }) {
-    updateTabRequest({ testScript: newScript })
+    updateCurrentTab({ testScript: newScript })
     return {
       request: {
         ...curr.request,
@@ -244,7 +237,7 @@ const dispatchers = defineDispatchers({
   ) {
     // TODO: persist body evenafter switching content typees
     const newBody = applyBodyTransition(curr.request.body, newContentType)
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
     return {
       request: {
         ...curr.request,
@@ -260,7 +253,7 @@ const dispatchers = defineDispatchers({
       contentType: "multipart/form-data",
       body: [...curr.request.body.body, entry],
     }
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
     return {
       request: {
         ...curr.request,
@@ -276,7 +269,7 @@ const dispatchers = defineDispatchers({
       contentType: "multipart/form-data",
       body: curr.request.body.body.filter((_x, i) => i !== index),
     }
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
 
     return {
       request: {
@@ -297,7 +290,7 @@ const dispatchers = defineDispatchers({
       body: curr.request.body.body.map((x, i) => (i !== index ? x : entry)),
     }
 
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
 
     return {
       request: {
@@ -315,7 +308,7 @@ const dispatchers = defineDispatchers({
       body: [],
     }
 
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
 
     return {
       request: {
@@ -325,7 +318,7 @@ const dispatchers = defineDispatchers({
     }
   },
   setRequestBody(curr: RESTSession, { newBody }: { newBody: HoppRESTReqBody }) {
-    updateTabRequest({ body: newBody })
+    updateCurrentTab({ body: newBody })
     return {
       request: {
         ...curr.request,

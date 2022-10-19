@@ -251,6 +251,7 @@ import {
   restRequest$,
   setRESTSaveContext,
 } from "~/newstore/RESTSession"
+import { EventEmitter } from "~/newstore/TABSession"
 import { editRESTRequest } from "~/newstore/collections"
 import { runRESTRequest$ } from "~/helpers/RequestRunner"
 import {
@@ -406,6 +407,7 @@ const updateMethod = (method: string) => {
 
 const onSelectMethod = (method: string) => {
   updateMethod(method)
+  EventEmitter.emit("updateCurrentMethod", method)
 }
 
 const clearContent = () => {

@@ -8,10 +8,7 @@
               v-for="([tabID, tabMeta], index) in tabEntries"
               :key="`tab-${index}`"
               class="tab group"
-              :class="[
-                { active: modelValue === tabID },
-                { 'opacity-75 !cursor-not-allowed': tabMeta.disabled },
-              ]"
+              :class="[{ active: modelValue === tabID }]"
               :aria-label="tabMeta.name || ''"
               :disabled="tabMeta.disabled"
               role="button"
@@ -98,14 +95,23 @@ import { ref, ComputedRef, computed, provide } from "vue"
 import { throwError } from "~/helpers/functional/error"
 import { useI18n } from "@composables/i18n"
 import {
-  tabRequestStore,
-  makeNewRESTRequest,
-  EventBus,
-} from "~/newstore/tabRequest"
+  getDefaultTABRequest,
+  addTabRequest,
+  removeTabRequest,
+  // updateTabRequest,
+  setActiveTabRequest,
+  getActiveTabRequest,
+  getTabSize,
+  // getTabRequest,
+  getTabFromCollectionRequestID,
+  tabsRequest$,
+  EventEmitter,
+  type ITabRequest,
+} from "~/newstore/TABSession"
+import { useReadonlyStream } from "@composables/stream"
 import { cloneDeep } from "lodash-es"
 import { translateToNewRequest } from "@hoppscotch/data"
 import { setRESTRequest } from "~/newstore/RESTSession"
-
 export type TabMeta = {
   indicator: boolean
   disabled: boolean
@@ -143,6 +149,8 @@ const emit = defineEmits<{
 
 const tabEntries = ref<Array<[string, TabMeta]>>([])
 const emptyState = computed(() => tabEntries.value.length === 0)
+const tabsRequest = useReadonlyStream(tabsRequest$, [getDefaultTABRequest()])
+
 const t = useI18n()
 
 const requestMethodLabels = {
@@ -153,37 +161,38 @@ const requestMethodLabels = {
   default: "text-gray-500",
 }
 
+EventEmitter.on("activeTab", (id) => selectTab(id))
+EventEmitter.on("updateCurrentMethod", (method) => {
+  updateCurrentTabMethod(method, props.modelValue)
+})
+EventEmitter.on(
+  "addTabRequest",
+  (context: { request: ITabRequest; collectionRequestID: string }) => {
+    const tab = getTabFromCollectionRequestID(context.collectionRequestID)
+    if (tab) {
+      removeTabRequest(tab.id as string)
+    }
+    return addTabRequest(context.request)
+  }
+)
+
 const getRequestLabelColor = (method: string) =>
   requestMethodLabels[
     method.toLowerCase() as keyof typeof requestMethodLabels
   ] || requestMethodLabels.default
 
 const addTabButton = () => {
-  let i = tabRequestStore.value.state.length
-  while (tabRequestStore.value.state.some((tab) => tab.id === `tab-${i}`)) {
-    i++
-  }
-  const newRequest = makeNewRESTRequest(`tab-${i}`)
+  let i = getTabSize()
+  while (tabsRequest.value.some((tab) => tab.id === `tab-${i}`)) i++
+  const newRequest = getDefaultTABRequest(`tab-${i}`)
+  if (i === 0) setRESTRequest({ ...newRequest, isActive: true } as ITabRequest)
   selectTab(`tab-${i}`)
-  tabRequestStore.dispatch({
-    dispatcher: "addTab",
-    payload: newRequest,
-  })
+  addTabRequest(newRequest)
 }
 
 const closeTabButton = (tabID: string) => {
   tabEntries.value = tabEntries.value.filter(([id]) => id !== tabID)
-  tabRequestStore.dispatch({
-    dispatcher: "removeTab",
-    payload: tabID,
-  })
-  if (props.modelValue === tabID) {
-    if (tabEntries.value.length > 1) {
-      selectTab(tabEntries.value[0][0])
-    } else {
-      selectTab("")
-    }
-  }
+  removeTabRequest(tabID)
 }
 
 const addTabEntry = (tabID: string, meta: TabMeta) => {
@@ -221,9 +230,22 @@ const removeTabEntry = (tabID: string) => {
     )
 
     // If we tried to remove the active tabEntries, switch to first tab entry
-    if (props.modelValue === tabID)
-      if (tabEntries.value.length > 0) selectTab(tabEntries.value[0][0])
+    if (props.modelValue === tabID) {
+      console.log("tabEntries.value", tabEntries.value)
+      if (tabEntries.value.length > 1) {
+        selectTab(tabEntries.value[tabEntries.value.length - 1][0])
+      } else {
+        selectTab(tabEntries.value[0][0])
+      }
+    }
   }
+}
+
+const updateCurrentTabMethod = (method: string, tabID: string) => {
+  updateTabEntry(tabID, {
+    ...tabEntries.value.find(([id]) => id === tabID)?.[1],
+    method,
+  } as TabMeta)
 }
 
 provide<TabProvider>("tabs-system", {
@@ -236,19 +258,13 @@ provide<TabProvider>("tabs-system", {
 
 const selectTab = (id: string) => {
   emit("update:modelValue", id)
-  tabRequestStore.dispatch({
-    dispatcher: "setActiveTab",
-    payload: id,
-  })
-  const activeTab = tabRequestStore.value.state.find((tab) => tab.id === id)
-
+  setActiveTabRequest(id)
+  const activeTab = getActiveTabRequest()
   if (activeTab) {
     const newCloneTab = translateToNewRequest(cloneDeep(activeTab))
     setRESTRequest(newCloneTab)
   }
 }
-
-EventBus.on("update:activeTab", (id) => selectTab(id))
 </script>
 
 <style lang="scss" scoped>
@@ -289,7 +305,7 @@ EventBus.on("update:activeTab", (id) => selectTab(id))
       @apply inline-flex;
       @apply items-center;
       @apply justify-center;
-      @apply w-5;
+      @apply w-full;
       @apply h-4;
       @apply ml-2;
       @apply text-8px;
@@ -300,8 +316,8 @@ EventBus.on("update:activeTab", (id) => selectTab(id))
 
     &::after {
       @apply absolute;
-      @apply left-4;
-      @apply right-4;
+      @apply left-1;
+      @apply right-1;
       @apply bottom-0;
       @apply bg-transparent;
       @apply z-2;

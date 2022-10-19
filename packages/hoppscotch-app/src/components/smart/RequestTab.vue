@@ -17,7 +17,7 @@ const props = withDefaults(
     indicator?: boolean
   }>(),
   {
-    name: "Untitled Request",
+    name: "Untitled request",
     method: "GET",
     disabled: false,
     indicator: false,

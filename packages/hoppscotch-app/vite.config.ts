@@ -69,12 +69,15 @@ export default defineConfig({
       dirs: "src/pages",
       importMode: "async",
       onRoutesGenerated(routes) {
-        return generateSitemap({
-          routes,
-          nuxtStyle: true,
-          allowRobots: true,
-          hostname: ENV.VITE_BASE_URL,
-        })
+        return (
+          process.env.NODE_ENV === "production" &&
+          generateSitemap({
+            routes,
+            nuxtStyle: true,
+            allowRobots: true,
+            hostname: ENV.VITE_BASE_URL,
+          })
+        )
       },
     }),
     Layouts({

@@ -2,7 +2,7 @@
 <template>
   <SmartRequestTabs v-model="(currentRequest as string)">
     <SmartRequestTab
-      v-for="(tab, index) in tabRequestStore.value.state"
+      v-for="(tab, index) in getTabsRequest()"
       :id="tab.id || 'tab-' + index"
       :key="tab.id || 'tab-' + index"
       :name="tab.name"
@@ -15,10 +15,13 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { tabRequestStore, ITab } from "~/newstore/tabRequest"
-const firstTab = tabRequestStore.value.state[0]
+import { getTabsRequest } from "~/newstore/TABSession"
 
-const currentRequest = ref<ITab["id"] | null>(firstTab ? firstTab.id : null)
+const firstTab = getTabsRequest()[0]
+
+const currentRequest = ref<string | undefined | null>(
+  firstTab ? firstTab.id : null
+)
 </script>
 
 <route lang="yaml">

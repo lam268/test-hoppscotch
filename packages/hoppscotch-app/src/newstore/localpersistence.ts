@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals, no-restricted-syntax */
 
-import { clone, cloneDeep, assign, isEmpty } from "lodash-es"
+import { clone, cloneDeep, assign, isEmpty, uniqBy } from "lodash-es"
 import * as O from "fp-ts/Option"
 import { pipe } from "fp-ts/function"
 import {
@@ -46,6 +46,7 @@ import {
   restRequest$,
   setRESTRequest,
 } from "./RESTSession"
+import { tabsRequest$, setTabsRequest } from "./TABSession"
 import { WSRequest$, setWSRequest } from "./WebSocketSession"
 import { SIORequest$, setSIORequest } from "./SocketIOSession"
 import { SSERequest$, setSSERequest } from "./SSESession"
@@ -334,6 +335,21 @@ function setupRequestPersistence() {
   })
 }
 
+function setupTabRequestPersistence() {
+  const localRequest = JSON.parse(
+    window.localStorage.getItem("tabRequest") || "null"
+  )
+
+  if (localRequest) {
+    setTabsRequest(localRequest)
+  }
+
+  tabsRequest$.subscribe((tabs) => {
+    const result = uniqBy(cloneDeep(tabs), "id")
+    window.localStorage.setItem("tabRequest", JSON.stringify(result))
+  })
+}
+
 export function setupLocalPersistence() {
   checkAndMigrateOldSettings()
 
@@ -349,6 +365,7 @@ export function setupLocalPersistence() {
   setupSocketIOPersistence()
   setupSSEPersistence()
   setupMQTTPersistence()
+  setupTabRequestPersistence()
 }
 
 /**
