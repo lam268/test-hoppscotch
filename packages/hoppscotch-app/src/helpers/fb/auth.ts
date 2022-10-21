@@ -3,11 +3,8 @@ import {
   getAuth,
   onAuthStateChanged,
   onIdTokenChanged,
-  signInWithPopup,
   GoogleAuthProvider,
-  GithubAuthProvider,
   OAuthProvider,
-  signInWithEmailAndPassword as signInWithEmailAndPass,
   isSignInWithEmailLink as isSignInWithEmailLinkFB,
   fetchSignInMethodsForEmail,
   sendSignInLinkToEmail,
@@ -17,7 +14,6 @@ import {
   linkWithCredential,
   AuthCredential,
   AuthError,
-  UserCredential,
   updateProfile,
   updateEmail,
   sendEmailVerification,
@@ -186,34 +182,7 @@ export function getAuthIDToken(): string | null {
  * Sign user in with a popup using Google
  */
 export async function signInUserWithGoogle() {
-  return await signInWithPopup(getAuth(), new GoogleAuthProvider())
-}
-
-/**
- * Sign user in with a popup using Github
- */
-export async function signInUserWithGithub() {
-  return await signInWithPopup(
-    getAuth(),
-    new GithubAuthProvider().addScope("gist")
-  )
-}
-
-/**
- * Sign user in with a popup using Microsoft
- */
-export async function signInUserWithMicrosoft() {
-  return await signInWithPopup(getAuth(), new OAuthProvider("microsoft.com"))
-}
-
-/**
- * Sign user in with email and password
- */
-export async function signInWithEmailAndPassword(
-  email: string,
-  password: string
-) {
-  return await signInWithEmailAndPass(getAuth(), email, password)
+  window.location.href = `${process.env.SERVER_URL}/connect/google`
 }
 
 /**
@@ -251,12 +220,9 @@ export async function linkWithFBCredentialFromAuthError(error: unknown) {
 
   let user: User | null = null
 
+  //  TODO: Check this code in order to replace this function
   if (otherLinkedProviders.indexOf("google.com") >= -1) {
     user = (await signInUserWithGoogle()).user
-  } else if (otherLinkedProviders.indexOf("github.com") >= -1) {
-    user = (await signInUserWithGithub()).user
-  } else if (otherLinkedProviders.indexOf("microsoft.com") >= -1) {
-    user = (await signInUserWithMicrosoft()).user
   }
 
   // user is not null since going through each provider will return a user
@@ -390,14 +356,8 @@ async function reauthenticateUser() {
   const currentAuthMethod = currentUser$.value.provider
   let credential
   if (currentAuthMethod === "google.com") {
-    const result = await signInUserWithGithub()
-    credential = GithubAuthProvider.credentialFromResult(result)
-  } else if (currentAuthMethod === "github.com") {
     const result = await signInUserWithGoogle()
     credential = GoogleAuthProvider.credentialFromResult(result)
-  } else if (currentAuthMethod === "microsoft.com") {
-    const result = await signInUserWithMicrosoft()
-    credential = OAuthProvider.credentialFromResult(result)
   } else if (currentAuthMethod === "password") {
     const email = prompt(
       "Reauthenticate your account using your current email:"
@@ -427,8 +387,4 @@ async function reauthenticateUser() {
     console.error("error updating", e)
     throw e
   }
-}
-
-export function getGithubCredentialFromResult(result: UserCredential) {
-  return GithubAuthProvider.credentialFromResult(result)
 }
