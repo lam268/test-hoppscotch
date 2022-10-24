@@ -34,14 +34,14 @@ export type HoppRESTReqBodyFormData = {
 
 export type HoppRESTReqBody =
   | {
-      contentType: Exclude<ValidContentTypes, "multipart/form-data">
-      body: string
-    }
+    contentType: Exclude<ValidContentTypes, "multipart/form-data">
+    body: string
+  }
   | HoppRESTReqBodyFormData
   | {
-      contentType: null
-      body: null
-    }
+    contentType: null
+    body: null
+  }
 
 export interface HoppRESTRequest {
   v: string
@@ -58,6 +58,8 @@ export interface HoppRESTRequest {
   auth: HoppRESTAuth
 
   body: HoppRESTReqBody
+
+  document: string
 }
 
 export const HoppRESTRequestEq = Eq.struct<HoppRESTRequest>({
@@ -78,6 +80,7 @@ export const HoppRESTRequestEq = Eq.struct<HoppRESTRequest>({
   name: S.Eq,
   preRequestScript: S.Eq,
   testScript: S.Eq,
+  document: S.Eq,
 })
 
 export const isEqualHoppRESTRequest = HoppRESTRequestEq.equals
@@ -104,6 +107,9 @@ export function safelyExtractRESTRequest(
 
     if (x.hasOwnProperty("name") && typeof x.name === "string")
       req.name = x.name
+
+    if (x.hasOwnProperty("document") && typeof x.document === "string")
+      req.document = x.document
 
     if (x.hasOwnProperty("method") && typeof x.method === "string")
       req.method = x.method
@@ -186,6 +192,8 @@ export function translateToNewRequest(x: any): HoppRESTRequest {
       })
     )
 
+    const document = x?.document ?? ""
+
     const name = x?.name ?? "Untitled request"
     const method = x?.method ?? ""
 
@@ -198,6 +206,7 @@ export function translateToNewRequest(x: any): HoppRESTRequest {
 
     const result: HoppRESTRequest = {
       name,
+      document,
       endpoint,
       headers,
       params,

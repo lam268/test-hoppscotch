@@ -179,7 +179,11 @@ import { editRESTRequest } from "~/newstore/collections"
 import { runMutation } from "~/helpers/backend/GQLClient"
 import { UpdateRequestDocument } from "~/helpers/backend/graphql"
 import { HoppRequestSaveContext } from "~/helpers/types/HoppRequestSaveContext"
-import { translateToNewTabRequest, EventEmitter } from "~/newstore/TABSession"
+import {
+  translateToNewTabRequest,
+  EventEmitter,
+  generateTabID,
+} from "~/newstore/TABSession"
 
 const props = defineProps<{
   request: HoppRESTRequest
@@ -322,11 +326,12 @@ const setRestReq = (request: any) => {
   }
   setRESTRequest(restReq, context as HoppRequestSaveContext)
   const newTabReq = cloneDeep(translateToNewTabRequest(restReq))
-  EventEmitter.emit("activeTab", newTabReq.id as string)
+  newTabReq.id = generateTabID()
   EventEmitter.emit("addTabRequest", {
     request: newTabReq,
     collectionRequestID: String(props.requestIndex),
   })
+  EventEmitter.emit("activeTab", newTabReq.id as string)
 }
 
 /** Loads request from the save once, checks for unsaved changes, but ignores default values */

@@ -43,6 +43,7 @@ export const getDefaultTABRequest = (id?: string): ITabRequest => ({
     body: null,
   },
   isActive: false,
+  document: "",
 })
 
 export function safelyExtractTabRequest(
@@ -53,6 +54,8 @@ export function safelyExtractTabRequest(
   if (!!x && typeof x === "object") {
     if (x.hasOwnProperty("v") && typeof x.v === "string") req.v = x.v
     if (x.hasOwnProperty("id") && typeof x.id === "string") req.id = x.id
+    if (x.hasOwnProperty("document") && typeof x.document === "string")
+      req.document = x.document
     if (x.hasOwnProperty("name") && typeof x.name === "string")
       req.name = x.name
     if (x.hasOwnProperty("method") && typeof x.method === "string")
@@ -80,15 +83,22 @@ export function safelyExtractTabRequest(
   return req
 }
 
+export const generateTabID = () => {
+  let index = 0
+  while (true) {
+    const id = `tab-${index}`
+    const tab = getTabRequest(id)
+    console.log("tab", tab)
+    if (!tab) return id
+    index++
+  }
+}
+
 export const translateToNewTabRequest = (x: HoppRESTRequest): ITabRequest => {
-  console.log("translateToNewTabRequest", x)
   if (!x.id) {
-    let i = getTabSize()
-    while (getTabRequest(`tab-${i}`)) i++
-    x.id = `tab-${i}`
+    x.id = generateTabID()
   }
   const result = { ...x, isActive: false }
-  console.log(result)
   return result
 }
 
@@ -157,6 +167,7 @@ export const addTabRequest = (newRequest: ITabRequest) => {
     dispatcher: "addTabRequest",
     payload: { newRequest },
   })
+  console.log("addTabRequest", tabSessionStore.value.tabs)
 }
 
 export const removeTabRequest = (id: string) => {

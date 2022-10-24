@@ -80,6 +80,7 @@ importers:
       '@types/lodash-es': ^4.17.6
       '@types/lossless-json': ^1.0.1
       '@types/markdown-it': ^12.2.3
+      '@types/markdown-it-emoji': 2.0.2
       '@types/nprogress': ^0.2.0
       '@types/paho-mqtt': ^1.0.6
       '@types/postman-collection': ^3.5.7
@@ -121,6 +122,7 @@ importers:
       lodash-es: ^4.17.21
       lossless-json: ^1.0.5
       markdown-it: ^13.0.1
+      markdown-it-emoji: ^2.0.2
       mitt: ^3.0.0
       npm-run-all: ^4.1.5
       nprogress: ^0.2.0
@@ -217,6 +219,7 @@ importers:
       lodash-es: 4.17.21
       lossless-json: 1.0.5
       markdown-it: 13.0.1
+      markdown-it-emoji: 2.0.2
       mitt: 3.0.0
       nprogress: 0.2.0
       paho-mqtt: 1.1.0
@@ -266,6 +269,7 @@ importers:
       '@types/lodash-es': 4.17.6
       '@types/lossless-json': 1.0.1
       '@types/markdown-it': 12.2.3
+      '@types/markdown-it-emoji': 2.0.2
       '@types/nprogress': 0.2.0
       '@types/paho-mqtt': 1.0.6
       '@types/postman-collection': 3.5.7
@@ -4099,6 +4103,12 @@ packages:
 
   /@types/lossless-json/1.0.1:
     resolution: {integrity: sha512-zPE8kmpeL5/6L5gtTQHSOkAW/OSYYNTDRt6/2oEgLO1Zd3Rj5WVDoMloTtLJxQJhZGLGbL4pktKSh3NbzdaWdw==}
+    dev: true
+
+  /@types/markdown-it-emoji/2.0.2:
+    resolution: {integrity: sha512-2ln8Wjbcj/0oRi/6VnuMeWEHHuK8uapFttvcLmDIe1GKCsFBLOLBX+D+xhDa9oWOQV0IpvxwrSfKKssAqqroog==}
+    dependencies:
+      '@types/markdown-it': 12.2.3
     dev: true
 
   /@types/markdown-it/12.2.3:
@@ -9365,6 +9375,10 @@ packages:
 
   /map-stream/0.1.0:
     resolution: {integrity: sha512-CkYQrPYZfWnu/DAmVCpTSX/xHpKZ80eKh2lAkyA6AJTef6bW+6JpbQZN5rofum7da+SyN1bi5ctTm+lTfcCW3g==}
+    dev: false
+
+  /markdown-it-emoji/2.0.2:
+    resolution: {integrity: sha512-zLftSaNrKuYl0kR5zm4gxXjHaOI3FAOEaloKmRA5hijmJZvSjmxcokOLlzycb/HXlUFWzXqpIEoyEMCE4i9MvQ==}
     dev: false
 
   /markdown-it/13.0.1:

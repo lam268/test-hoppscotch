@@ -42,6 +42,7 @@ export const getDefaultRESTRequest = (): HoppRESTRequest => ({
     contentType: null,
     body: null,
   },
+  document: "",
 })
 
 const defaultRESTSession: RESTSession = {
@@ -65,6 +66,14 @@ const dispatchers = defineDispatchers({
   setRequest(_: RESTSession, { req }: { req: HoppRESTRequest }) {
     return {
       request: req,
+    }
+  },
+  setRequestDocument(curr: RESTSession, { newDoc }: { newDoc: string }) {
+    return {
+      request: {
+        ...curr.request,
+        document: newDoc,
+      },
     }
   },
   setRequestName(curr: RESTSession, { newName }: { newName: string }) {
@@ -395,6 +404,15 @@ export function resetRESTRequest() {
   setRESTRequest(getDefaultRESTRequest())
 }
 
+export function setRESTDocument(newDoc: string) {
+  restSessionStore.dispatch({
+    dispatcher: "setRequestDocument",
+    payload: {
+      newDoc,
+    },
+  })
+}
+
 export function setRESTEndpoint(newEndpoint: string) {
   restSessionStore.dispatch({
     dispatcher: "setEndpoint",
@@ -625,6 +643,11 @@ export const restRequest$ = restSessionStore.subject$.pipe(
   distinctUntilChanged()
 )
 
+export const restRequestDocument$ = restRequest$.pipe(
+  pluck("document"),
+  distinctUntilChanged()
+)
+
 export const restRequestName$ = restRequest$.pipe(
   pluck("name"),
   distinctUntilChanged()
@@ -753,5 +776,13 @@ export function useRESTRequestName(): Ref<string> {
     restRequestName$,
     restSessionStore.value.request.name,
     setRESTRequestName
+  )
+}
+
+export function useRESTRequestDocument(): Ref<string> {
+  return useStream(
+    restRequestDocument$,
+    restSessionStore.value.request.document,
+    setRESTDocument
   )
 }

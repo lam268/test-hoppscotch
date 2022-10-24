@@ -9,7 +9,16 @@
     @resize="setPaneEvent($event, 'vertical')"
   >
     <Pane
-      :size="PANE_MAIN_SIZE"
+      v-if="SIDEBAR && hasSidebarDocs"
+      :size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2.25"
+      :max-size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2.25"
+      min-size="2.25"
+      class="hide-scrollbar !overflow-auto flex flex-col"
+    >
+      <slot name="docs" />
+    </Pane>
+    <Pane
+      :size="OPEN_DOCS ? '' : 100"
       min-size="65"
       class="flex flex-col !overflow-auto"
     >
@@ -32,7 +41,8 @@
     <Pane
       v-if="SIDEBAR && hasSidebar"
       :size="PANE_SIDEBAR_SIZE"
-      min-size="20"
+      max-size="25"
+      min-size="3"
       class="flex flex-col !overflow-auto bg-primaryContrast"
     >
       <slot name="sidebar" />
@@ -58,10 +68,12 @@ const mdAndLarger = breakpoints.greater("md")
 const COLUMN_LAYOUT = useSetting("COLUMN_LAYOUT")
 
 const SIDEBAR = useSetting("SIDEBAR")
+const OPEN_DOCS = useSetting("OPEN_DOCS")
 
 const slots = useSlots()
 
 const hasSidebar = computed(() => !!slots.sidebar)
+const hasSidebarDocs = computed(() => !!slots.docs)
 
 const props = defineProps({
   layoutId: {
@@ -80,6 +92,7 @@ const PANE_SIDEBAR_SIZE = ref(25)
 const PANE_MAIN_SIZE = ref(75)
 const PANE_MAIN_TOP_SIZE = ref(45)
 const PANE_MAIN_BOTTOM_SIZE = ref(65)
+const PANE_RIGHT_SIDEBAR_SIZE = ref(30)
 
 if (!COLUMN_LAYOUT.value) {
   PANE_MAIN_TOP_SIZE.value = 50

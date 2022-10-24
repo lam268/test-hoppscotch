@@ -4,6 +4,8 @@ import { Observable } from "rxjs"
 
 import DispatchingStore, { defineDispatchers } from "./DispatchingStore"
 import type { KeysMatching } from "~/types/ts-utils"
+import { useStream } from "~/composables/stream"
+import { Ref } from "vue"
 
 export const HoppBgColors = ["system", "light", "dark", "black"] as const
 
@@ -51,6 +53,8 @@ export type SettingsType = {
   ZEN_MODE: boolean
   FONT_SIZE: HoppFontSize
   COLUMN_LAYOUT: boolean
+  OPEN_DOCS: boolean
+  LEFT_SIDE_BAR_LAYOUT: boolean
 }
 
 export const defaultSettings: SettingsType = {
@@ -77,6 +81,8 @@ export const defaultSettings: SettingsType = {
   ZEN_MODE: false,
   FONT_SIZE: "small",
   COLUMN_LAYOUT: true,
+  OPEN_DOCS: true,
+  LEFT_SIDE_BAR_LAYOUT: true,
 }
 
 const validKeys = Object.keys(defaultSettings)
@@ -162,4 +168,22 @@ export function applySetting<K extends keyof SettingsType>(
       value,
     },
   })
+}
+
+export function useSetting<K extends keyof SettingsType>(
+  settingKey: K
+): Ref<SettingsType[K]> {
+  return useStream(
+    settingsStore.subject$.pipe(pluck(settingKey), distinctUntilChanged()),
+    settingsStore.value[settingKey],
+    (value: SettingsType[K]) => {
+      settingsStore.dispatch({
+        dispatcher: "applySetting",
+        payload: {
+          settingKey,
+          value,
+        },
+      })
+    }
+  )
 }

@@ -212,7 +212,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import IconArchive from "~icons/lucide/archive"
 import IconPlus from "~icons/lucide/plus"
 import IconHelpCircle from "~icons/lucide/help-circle"

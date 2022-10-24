@@ -6,11 +6,25 @@
         <HttpRequestOptions />
       </HttpTabHeader>
     </template>
+    <template #sidebar>
+      <HttpSidebar />
+    </template>
     <template #secondary>
       <HttpResponse />
     </template>
-    <template #sidebar>
-      <HttpSidebar />
+    <template #docs>
+      <div class="flex h-full bg-primary top-0 w-full border-dividerLight">
+        <div class="border-1 border-dividerLight">
+          <ButtonSecondary
+            v-tippy="{ theme: 'tooltip' }"
+            title="Documentation"
+            :icon="BookIcon"
+            class="rounded hover:bg-primaryDark focus-visible:bg-primaryDark"
+            @click="OPEN_DOCS = !OPEN_DOCS"
+          />
+        </div>
+        <HttpRightSideBar v-if="OPEN_DOCS" />
+      </div>
     </template>
   </AppPaneLayout>
 </template>
@@ -46,8 +60,13 @@ import { useStream } from "@composables/stream"
 import { useToast } from "@composables/toast"
 import { onLoggedIn } from "@composables/auth"
 import { loadRequestFromSync, startRequestSync } from "~/helpers/fb/request"
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import { oauthRedirect } from "~/helpers/oauth"
 import { useRoute } from "vue-router"
+import { useSetting } from "~/newstore/settings"
+
+import BookIcon from "~icons/lucide/book-open"
 
 function bindRequestToURLParams() {
   const route = useRoute()
@@ -131,6 +150,9 @@ export default defineComponent({
     const toast = useToast()
     const t = useI18n()
 
+    const OPEN_DOCS = useSetting("OPEN_DOCS")
+    const LEFT_SIDE_BAR_LAYOUT = useSetting("LEFT_SIDE_BAR_LAYOUT")
+
     watch(confirmSync, (newValue) => {
       if (newValue) {
         toast.show(`${t("confirm.sync")}`, {
@@ -169,6 +191,9 @@ export default defineComponent({
       syncRequest,
       oAuthURL,
       requestForSync,
+      OPEN_DOCS,
+      LEFT_SIDE_BAR_LAYOUT,
+      BookIcon,
     }
   },
 })

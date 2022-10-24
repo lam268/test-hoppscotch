@@ -98,17 +98,14 @@ import {
   getDefaultTABRequest,
   addTabRequest,
   removeTabRequest,
-  // updateTabRequest,
   setActiveTabRequest,
   getActiveTabRequest,
-  getTabSize,
-  // getTabRequest,
   getTabFromCollectionRequestID,
-  tabsRequest$,
+  generateTabID,
   EventEmitter,
   type ITabRequest,
 } from "~/newstore/TABSession"
-import { useReadonlyStream } from "@composables/stream"
+// import { useReadonlyStream } from "@composables/stream"
 import { cloneDeep } from "lodash-es"
 import { translateToNewRequest } from "@hoppscotch/data"
 import { setRESTRequest } from "~/newstore/RESTSession"
@@ -149,7 +146,7 @@ const emit = defineEmits<{
 
 const tabEntries = ref<Array<[string, TabMeta]>>([])
 const emptyState = computed(() => tabEntries.value.length === 0)
-const tabsRequest = useReadonlyStream(tabsRequest$, [getDefaultTABRequest()])
+// const tabsRequest = useReadonlyStream(tabsRequest$, [getDefaultTABRequest()])
 
 const t = useI18n()
 
@@ -182,16 +179,29 @@ const getRequestLabelColor = (method: string) =>
   ] || requestMethodLabels.default
 
 const addTabButton = () => {
-  let i = getTabSize()
-  while (tabsRequest.value.some((tab) => tab.id === `tab-${i}`)) i++
-  const newRequest = getDefaultTABRequest(`tab-${i}`)
-  if (i === 0) setRESTRequest({ ...newRequest, isActive: true } as ITabRequest)
-  selectTab(`tab-${i}`)
-  addTabRequest(newRequest)
+  const id = generateTabID()
+  const defaultTab = getDefaultTABRequest(id)
+  const newTab: ITabRequest = {
+    ...defaultTab,
+    isActive: true,
+  }
+  setRESTRequest(newTab)
+  addTabRequest(newTab)
+  selectTab(id)
 }
 
 const closeTabButton = (tabID: string) => {
   tabEntries.value = tabEntries.value.filter(([id]) => id !== tabID)
+  // set next tab as active
+  const nextTab = pipe(
+    tabEntries.value,
+    A.findFirst(([id]) => id !== tabID),
+    O.map(([id]) => id),
+    O.getOrElse(() => "")
+  )
+
+  selectTab(nextTab)
+
   removeTabRequest(tabID)
 }
 
@@ -230,13 +240,10 @@ const removeTabEntry = (tabID: string) => {
     )
 
     // If we tried to remove the active tabEntries, switch to first tab entry
-    if (props.modelValue === tabID) {
-      console.log("tabEntries.value", tabEntries.value)
-      if (tabEntries.value.length > 1) {
-        selectTab(tabEntries.value[tabEntries.value.length - 1][0])
-      } else {
-        selectTab(tabEntries.value[0][0])
-      }
+    if (tabEntries.value.length > 1) {
+      selectTab(tabEntries.value[tabEntries.value.length - 1][0])
+    } else {
+      selectTab(tabEntries.value[0][0])
     }
   }
 }
