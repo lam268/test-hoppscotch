@@ -190,10 +190,10 @@ import IconMoreVertical from "~icons/lucide/more-vertical"
 import IconUserX from "~icons/lucide/user-x"
 import IconUserPlus from "~icons/lucide/user-plus"
 import IconTrash2 from "~icons/lucide/trash-2"
-import axios from "axios"
+import { useAxios } from "~/composables/axios"
 
 const t = useI18n()
-
+const axios = useAxios()
 const props = defineProps<{
   team: {
     id: string

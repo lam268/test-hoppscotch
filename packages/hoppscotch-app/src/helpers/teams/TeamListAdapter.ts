@@ -3,7 +3,8 @@ import { BehaviorSubject } from "rxjs"
 import { GQLError } from "../backend/GQLClient"
 import { GetMyTeamsQuery } from "../backend/graphql"
 // import { authIdToken$ } from "~/helpers/fb/auth"
-import axios from "axios"
+import { AxiosInstance } from "axios"
+import { useAxios } from "~/composables/axios"
 
 // const BACKEND_PAGE_SIZE = 10
 const POLL_DURATION = 10000
@@ -12,6 +13,7 @@ export default class TeamListAdapter {
   error$: BehaviorSubject<GQLError<string> | null>
   loading$: BehaviorSubject<boolean>
   teamList$: BehaviorSubject<any>
+  axios: AxiosInstance
 
   private timeoutHandle: ReturnType<typeof setTimeout> | null
   private isDispose: boolean
@@ -22,6 +24,7 @@ export default class TeamListAdapter {
     this.teamList$ = new BehaviorSubject<GetMyTeamsQuery["myTeams"]>([])
     this.timeoutHandle = null
     this.isDispose = false
+    this.axios = useAxios()
 
     if (!deferInit) this.initialize()
   }
@@ -49,7 +52,7 @@ export default class TeamListAdapter {
 
   async fetchList() {
     this.loading$.next(true)
-    const response = await axios.get("/teams")
+    const response = await this.axios.get(`/teams`)
 
     this.teamList$.next(response?.data?.data?.items || [])
 

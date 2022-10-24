@@ -42,15 +42,11 @@
           <span class="text-secondaryLight">{{ t("state.loading") }}</span>
         </div>
         <div
-          v-if="
-            !teamDetails.loading &&
-            E.isRight(teamDetails.data) &&
-            teamDetails.data.right.team.teamMembers
-          "
+          v-if="teamDetails.teamMembers"
           class="border rounded divide-y divide-dividerLight border-divider"
         >
           <div
-            v-if="teamDetails.data.right.team.teamMembers === 0"
+            v-if="teamDetails.teamMembers.length === 0"
             class="flex flex-col items-center justify-center p-4 text-secondaryLight"
           >
             <img
@@ -86,12 +82,7 @@
                 readonly
               />
               <span>
-                <tippy
-                  interactive
-                  trigger="click"
-                  theme="popover"
-                  :on-shown="() => tippyActions.focus()"
-                >
+                <tippy interactive trigger="click" theme="popover">
                   <span class="select-wrapper">
                     <input
                       class="flex flex-1 px-4 py-2 bg-transparent cursor-pointer"
@@ -116,7 +107,11 @@
                         :active="member.role === 'OWNER'"
                         @click="
                           () => {
-                            updateMemberRole(member.userID, 'OWNER')
+                            updateMemberRole(
+                              member.userID,
+                              TeamMemberRole.Owner,
+                              member.membershipID
+                            )
                             hide()
                           }
                         "
@@ -129,7 +124,11 @@
                         :active="member.role === 'EDITOR'"
                         @click="
                           () => {
-                            updateMemberRole(member.userID, 'EDITOR')
+                            updateMemberRole(
+                              member.userID,
+                              TeamMemberRole.Editor,
+                              member.membershipID
+                            )
                             hide()
                           }
                         "
@@ -142,7 +141,11 @@
                         :active="member.role === 'VIEWER'"
                         @click="
                           () => {
-                            updateMemberRole(member.userID, 'VIEWER')
+                            updateMemberRole(
+                              member.userID,
+                              TeamMemberRole.Viewer,
+                              member.membershipID
+                            )
                             hide()
                           }
                         "
@@ -159,16 +162,13 @@
                   :icon="IconUserMinus"
                   color="red"
                   :loading="isLoadingIndex === index"
-                  @click="removeExistingTeamMember(member.userID, index)"
+                  @click="removeExistingTeamMember(member, index)"
                 />
               </div>
             </div>
           </div>
         </div>
-        <div
-          v-if="!teamDetails.loading && E.isLeft(teamDetails.data)"
-          class="flex flex-col items-center"
-        >
+        <div v-if="!teamDetails.teamMembers" class="flex flex-col items-center">
           <component :is="IconHelpCircle" class="mb-4 svg-icons" />
           {{ t("error.something_went_wrong") }}
         </div>
@@ -195,24 +195,10 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from "vue"
-import * as E from "fp-ts/Either"
-import {
-  GetTeamDocument,
-  GetTeamQuery,
-  GetTeamQueryVariables,
-  TeamMemberAddedDocument,
-  TeamMemberRemovedDocument,
-  TeamMemberRole,
-  TeamMemberUpdatedDocument,
-} from "~/helpers/backend/graphql"
-import {
-  removeTeamMember,
-  renameTeam,
-  updateTeamMemberRole,
-} from "~/helpers/backend/mutations/Team"
+import { TeamMemberRole } from "~/helpers/backend/graphql"
+
 import { TeamNameCodec } from "~/helpers/backend/types/TeamName"
 
-import { useGQLQuery } from "~/composables/graphql"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { useColorMode } from "@composables/theming"
@@ -222,6 +208,8 @@ import IconCircle from "~icons/lucide/circle"
 import IconUserPlus from "~icons/lucide/user-plus"
 import IconUserMinus from "~icons/lucide/user-minus"
 import IconHelpCircle from "~icons/lucide/help-circle"
+import TeamListAdapter from "~/helpers/teams/TeamListAdapter"
+import { useAxios } from "~/composables/axios"
 
 const t = useI18n()
 const colorMode = useColorMode()
@@ -239,13 +227,29 @@ const props = defineProps<{
   show: boolean
   editingTeam: {
     name: string
+    myRole: TeamMemberRole
+    membershipID: string
+    teamMembers: Array<{
+      role: string
+      membershipID: string
+      user: {
+        id: string
+        email: string
+        displayName: string
+        photoURL: string | null
+      }
+    }>
   }
   editingTeamID: string
 }>()
 
 const toast = useToast()
+const axios = useAxios()
 
 const name = toRef(props.editingTeam, "name")
+const teamDetails = ref(props.editingTeam)
+const adapter = new TeamListAdapter(true)
+const editingTeamID = ref(props.editingTeamID)
 
 watch(
   () => props.editingTeam.name,
@@ -257,53 +261,17 @@ watch(
 watch(
   () => props.editingTeamID,
   (teamID: string) => {
-    teamDetails.execute({ teamID })
+    editingTeamID.value = teamID
   }
 )
 
-const teamDetails = useGQLQuery<GetTeamQuery, GetTeamQueryVariables, "">({
-  query: GetTeamDocument,
-  variables: {
-    teamID: props.editingTeamID,
-  },
-  pollDuration: 10000,
-  defer: true,
-  updateSubs: computed(() => {
-    if (props.editingTeamID) {
-      return [
-        {
-          key: 1,
-          query: TeamMemberAddedDocument,
-          variables: {
-            teamID: props.editingTeamID,
-          },
-        },
-        {
-          key: 2,
-          query: TeamMemberUpdatedDocument,
-          variables: {
-            teamID: props.editingTeamID,
-          },
-        },
-        {
-          key: 3,
-          query: TeamMemberRemovedDocument,
-          variables: {
-            teamID: props.editingTeamID,
-          },
-        },
-      ]
-    } else return []
-  }),
-})
-
 watch(
   () => props.show,
-  (show) => {
+  async (show) => {
     if (!show) {
-      teamDetails.pause()
+      await adapter.fetchList()
     } else {
-      teamDetails.unpause()
+      teamDetails.value = props.editingTeam
     }
   }
 )
@@ -311,6 +279,7 @@ watch(
 const roleUpdates = ref<
   {
     userID: string
+    membershipID: string
     role: TeamMemberRole
   }[]
 >([])
@@ -318,78 +287,69 @@ const roleUpdates = ref<
 watch(
   () => teamDetails,
   () => {
-    if (teamDetails.loading) return
+    const members = props.editingTeam.teamMembers ?? []
 
-    const data = teamDetails.data
-
-    if (E.isRight(data)) {
-      const members = data.right.team?.teamMembers ?? []
-
-      // Remove deleted members
-      roleUpdates.value = roleUpdates.value.filter(
-        (update) =>
-          members.findIndex((y) => y.user.uid === update.userID) !== -1
-      )
-    }
+    // Remove deleted members
+    roleUpdates.value = roleUpdates.value.filter(
+      (update) => members.findIndex((y) => y.user.id === update.userID) !== -1
+    )
+  },
+  {
+    immediate: true,
   }
 )
 
-const updateMemberRole = (userID: string, role: TeamMemberRole) => {
+const updateMemberRole = (
+  userID: string,
+  role: TeamMemberRole,
+  membershipID: string
+) => {
   const updateIndex = roleUpdates.value.findIndex(
     (item) => item.userID === userID
   )
   if (updateIndex !== -1) {
     // Role Update exists
     roleUpdates.value[updateIndex].role = role
+    roleUpdates.value[updateIndex].membershipID = membershipID
   } else {
     // Role Update does not exist
     roleUpdates.value.push({
       userID,
+      membershipID,
       role,
     })
   }
 }
 
 const membersList = computed(() => {
-  if (teamDetails.loading) return []
+  const members = (props.editingTeam.teamMembers ?? []).map((member) => {
+    const updatedRole = roleUpdates.value.find(
+      (update) => update.userID === member.user.id
+    )
+    return {
+      userID: member.user.id,
+      membershipID: member.membershipID,
+      email: member.user.email!,
+      role: updatedRole?.role ?? member.role,
+    }
+  })
 
-  const data = teamDetails.data
-
-  if (E.isLeft(data)) return []
-
-  if (E.isRight(data)) {
-    const members = (data.right.team?.teamMembers ?? []).map((member) => {
-      const updatedRole = roleUpdates.value.find(
-        (update) => update.userID === member.user.uid
-      )
-
-      return {
-        userID: member.user.uid,
-        email: member.user.email!,
-        role: updatedRole?.role ?? member.role,
-      }
-    })
-
-    return members
-  }
-
-  return []
+  return members
 })
-
 const isLoadingIndex = ref<null | number>(null)
 
-const removeExistingTeamMember = async (userID: string, index: number) => {
+const removeExistingTeamMember = async (member: any, index: number) => {
   isLoadingIndex.value = index
-  const removeTeamMemberResult = await removeTeamMember(
-    userID,
-    props.editingTeamID
-  )()
-  if (E.isLeft(removeTeamMemberResult)) {
+  membersList.value.splice(index, 1)
+  const removeTeamMemberResult = await axios.post("/team-users/delete-member", {
+    teamUserId: member.membershipID,
+    userRole: props.editingTeam.myRole,
+  })
+  if (removeTeamMemberResult?.status !== 200) {
     toast.error(`${t("error.something_went_wrong")}`)
   } else {
     toast.success(`${t("team.member_removed")}`)
     emit("refetch-teams")
-    teamDetails.execute({ teamID: props.editingTeamID })
   }
   isLoadingIndex.value = null
 }
@@ -400,22 +360,27 @@ const saveTeam = async () => {
   isLoading.value = true
   if (name.value !== "") {
     if (TeamNameCodec.is(name.value)) {
-      const updateTeamNameResult = await renameTeam(
-        props.editingTeamID,
-        name.value
-      )()
-      if (E.isLeft(updateTeamNameResult)) {
+      const updateTeamNameResult = await axios.put(
+        `/teams/${props.editingTeamID}`,
+        {
+          name: name.value,
+        }
+      )
+      if (updateTeamNameResult.status !== 200) {
         toast.error(`${t("error.something_went_wrong")}`)
       } else {
         roleUpdates.value.forEach(async (update) => {
-          const updateMemberRoleResult = await updateTeamMemberRole(
-            update.userID,
-            props.editingTeamID,
-            update.role
-          )()
-          if (E.isLeft(updateMemberRoleResult)) {
-            toast.error(`${t("error.something_went_wrong")}`)
-            console.error(updateMemberRoleResult.left.error)
+          const updateMemberRoleResult = await axios.put(
+            `/team-users/${update.membershipID}`,
+            {
+              role: update.role,
+            }
+          )
+          if (updateMemberRoleResult.status !== 200) {
+            toast.error(
+              updateMemberRoleResult.data?.message ||
+                `${t("error.something_went_wrong")}`
+            )
           }
         })
       }

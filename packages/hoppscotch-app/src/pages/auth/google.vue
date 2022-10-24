@@ -1,24 +1,21 @@
-<!-- eslint-disable no-prototype-builtins -->
 <template>
   <div></div>
 </template>
 <script setup lang="ts">
 import {
-  useRoute,
-  onMounted,
-  useRouter,
-  useContext,
-} from "@nuxtjs/composition-api"
+  authEvents$,
+  probableUser$,
+  currentUser$,
+  HoppUser,
+} from "../../helpers/fb/auth"
+import { useRoute, useRouter } from "vue-router"
 import axios from "axios"
-import { authEvents$, probableUser$, currentUser$ } from "../../helpers/fb/auth"
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-
+import { onMounted } from "vue"
+import { setLocalConfig } from "~/newstore/localpersistence"
 const route = useRoute()
 const router = useRouter()
-const { $auth } = useContext()
-
 onMounted(async () => {
-  const { query } = route.value
+  const { query } = route
   const serialize = (obj: any) => {
     const str = []
     for (const p in obj) {
@@ -27,30 +24,30 @@ onMounted(async () => {
         str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]))
       }
     }
-
     return str.join("&")
   }
+  console.log(serialize(query))
   const res = await axios
-    .get(`auth/google/callback?${serialize(query)}`)
+    .get(
+      `${import.meta.env.VITE_BACKEND_URL}/auth/google/callback?${serialize(
+        query
+      )}`
+    )
     .then((response: any) => response.data)
-
   const user = {
-    uid: res.user.id,
-    email: res.user.email,
-    displayName: res.user.username,
-    provider: res.user.provider,
-    photoURL: res.avatar,
-  }
-
+    uid: res.data.user.id.toString(),
+    email: res.data.user.email,
+    displayName: res.data.user.username,
+    provider: res.data.user.provider,
+    photoURL: res.data.avatar,
+  } as HoppUser
+  setLocalConfig("accessToken", res.data.jwt)
   probableUser$.next(user)
   currentUser$.next(user)
-
   authEvents$.next({
     event: "login",
     user,
   })
-  $auth.setUser(user)
-  $auth.setUserToken(res.jwt)
   router.replace("/")
 })
 </script>

@@ -50,18 +50,15 @@
         </div>
         <div class="border rounded divide-y divide-dividerLight border-divider">
           <div
-            v-if="pendingInvites.loading"
+            v-if="!pendingInvites"
             class="flex items-center justify-center p-4"
           >
             <SmartSpinner />
           </div>
           <div v-else>
-            <div
-              v-if="!pendingInvites.loading && E.isRight(pendingInvites.data)"
-            >
+            <div v-if="pendingInvites">
               <div
-                v-for="(invitee, index) in pendingInvites.data.right.team
-                  .teamInvitations"
+                v-for="(invitee, index) in pendingInvites"
                 :key="`invitee-${index}`"
                 class="flex divide-x divide-dividerLight"
               >
@@ -70,14 +67,14 @@
                   class="flex flex-1 px-4 py-2 bg-transparent text-secondaryLight"
                   :placeholder="`${t('team.email')}`"
                   :name="'param' + index"
-                  :value="invitee.inviteeEmail"
+                  :value="invitee.userEmail"
                   readonly
                 />
                 <input
                   class="flex flex-1 px-4 py-2 bg-transparent text-secondaryLight"
                   :placeholder="`${t('team.permissions')}`"
                   :name="'value' + index"
-                  :value="invitee.inviteeRole"
+                  :value="invitee.role"
                   readonly
                 />
                 <div class="flex">
@@ -87,26 +84,20 @@
                     :icon="IconTrash"
                     color="red"
                     :loading="isLoadingIndex === index"
-                    @click="removeInvitee(invitee.id, index)"
+                    @click="removeInvitee(invitee.teamUserId, index)"
                   />
                 </div>
               </div>
             </div>
             <div
-              v-if="
-                E.isRight(pendingInvites.data) &&
-                pendingInvites.data.right.team.teamInvitations.length === 0
-              "
+              v-if="pendingInvites.length === 0"
               class="flex flex-col items-center justify-center p-4 text-secondaryLight"
             >
               <span class="text-center">
                 {{ t("empty.pending_invites") }}
               </span>
             </div>
-            <div
-              v-if="!pendingInvites.loading && E.isLeft(pendingInvites.data)"
-              class="flex flex-col items-center p-4"
-            >
+            <div v-if="!pendingInvites" class="flex flex-col items-center p-4">
               <component :is="IconHelpCircle" class="mb-4 svg-icons" />
               {{ t("error.something_went_wrong") }}
             </div>
@@ -169,7 +160,7 @@
                       :active="invitee.value === 'OWNER'"
                       @click="
                         () => {
-                          updateNewInviteeRole(index, 'OWNER')
+                          updateNewInviteeRole(index, TeamMemberRole.Owner)
                           hide()
                         }
                       "
@@ -182,7 +173,7 @@
                       :active="invitee.value === 'EDITOR'"
                       @click="
                         () => {
-                          updateNewInviteeRole(index, 'EDITOR')
+                          updateNewInviteeRole(index, TeamMemberRole.Editor)
                           hide()
                         }
                       "
@@ -195,7 +186,7 @@
                       :active="invitee.value === 'VIEWER'"
                       @click="
                         () => {
-                          updateNewInviteeRole(index, 'VIEWER')
+                          updateNewInviteeRole(index, TeamMemberRole.Viewer)
                           hide()
                         }
                       "
@@ -329,28 +320,15 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, reactive, computed } from "vue"
-import * as T from "fp-ts/Task"
-import * as E from "fp-ts/Either"
+import { watch, ref } from "vue"
+
 import * as A from "fp-ts/Array"
 import * as O from "fp-ts/Option"
-import { flow, pipe } from "fp-ts/function"
+import { pipe } from "fp-ts/function"
 import { Email, EmailCodec } from "../../helpers/backend/types/Email"
-import {
-  TeamInvitationAddedDocument,
-  TeamInvitationRemovedDocument,
-  TeamMemberRole,
-  GetPendingInvitesDocument,
-  GetPendingInvitesQuery,
-  GetPendingInvitesQueryVariables,
-} from "../../helpers/backend/graphql"
-import {
-  createTeamInvitation,
-  CreateTeamInvitationErrors,
-  revokeTeamInvitation,
-} from "../../helpers/backend/mutations/TeamInvitation"
+import { TeamMemberRole } from "../../helpers/backend/graphql"
+import { CreateTeamInvitationErrors } from "../../helpers/backend/mutations/TeamInvitation"
 import { GQLError } from "~/helpers/backend/GQLClient"
-import { useGQLQuery } from "@composables/graphql"
 
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
@@ -365,12 +343,21 @@ import IconCircleDot from "~icons/lucide/circle-dot"
 import IconCircle from "~icons/lucide/circle"
 import IconArrowLeft from "~icons/lucide/arrow-left"
 import { TippyComponent } from "vue-tippy"
+import { useAxios } from "~/composables/axios"
 
 const t = useI18n()
 
 const toast = useToast()
+const axios = useAxios()
 
+interface TeamInvitation {
+  teamUserId: string
+  role: string
+  userEmail: string
+  userId: string
+}
 const colorMode = useColorMode()
+const pendingInvites = ref<TeamInvitation[]>([])
 
 // Template refs
 const tippyActions = ref<TippyComponent[] | null>(null)
@@ -384,58 +371,17 @@ const emit = defineEmits<{
   (e: "hide-modal"): void
 }>()
 
-const pendingInvites = useGQLQuery<
-  GetPendingInvitesQuery,
-  GetPendingInvitesQueryVariables,
-  ""
->({
-  query: GetPendingInvitesDocument,
-  variables: reactive({
-    teamID: props.editingTeamID,
-  }),
-  pollDuration: 10000,
-  updateSubs: computed(() =>
-    !props.editingTeamID
-      ? []
-      : [
-          {
-            key: 4,
-            query: TeamInvitationAddedDocument,
-            variables: {
-              teamID: props.editingTeamID,
-            },
-          },
-          {
-            key: 5,
-            query: TeamInvitationRemovedDocument,
-            variables: {
-              teamID: props.editingTeamID,
-            },
-          },
-        ]
-  ),
-  defer: true,
-})
+const getPendingInvitesList = async (teamId: string) => {
+  const response = await axios.get(
+    `/team-users?teamId=${teamId}&acceptStatus=false`
+  )
+  pendingInvites.value = response.data.data.items
+}
 
 watch(
   () => props.show,
-  (show) => {
-    if (!show) {
-      pendingInvites.pause()
-    } else {
-      pendingInvites.unpause()
-    }
-  }
-)
-
-watch(
-  () => props.editingTeamID,
-  () => {
-    if (props.editingTeamID) {
-      pendingInvites.execute({
-        teamID: props.editingTeamID,
-      })
-    }
+  async () => {
+    await getPendingInvitesList(props.editingTeamID)
   }
 )
 
@@ -443,11 +389,12 @@ const isLoadingIndex = ref<null | number>(null)
 
 const removeInvitee = async (id: string, index: number) => {
   isLoadingIndex.value = index
-  const result = await revokeTeamInvitation(id)()
-  if (E.isLeft(result)) {
+  const result = await axios.delete(`/team-users/${id}`)
+  if (!result) {
     toast.error(`${t("error.something_went_wrong")}`)
   } else {
-    toast.success(`${t("team.member_removed")}`)
+    pendingInvites.value.splice(index, 1)
+    toast.success(`${t("team.invite_remove")}`)
   }
   isLoadingIndex.value = null
 }
@@ -489,7 +436,8 @@ const sendInvitesResult = ref<Array<SendInvitesErrorType>>([])
 
 const sendingInvites = ref<boolean>(false)
 
-const sendInvites = async () => {
+const sendInvites = () => {
+  sendingInvites.value = true
   const validationResult = pipe(
     newInvites.value,
     O.fromPredicate(
@@ -500,46 +448,46 @@ const sendInvites = async () => {
         )
     ),
     O.map(
-      A.map((invitee) =>
-        createTeamInvitation(invitee.key, invitee.value, props.editingTeamID)
-      )
+      A.map(async (invitee) => {
+        try {
+          const res = await axios.post("/team-users/inviteUser", {
+            email: invitee.key,
+            role: invitee.value,
+            teamId: props.editingTeamID,
+          })
+          pendingInvites.value.push({
+            teamUserId: res.data?.data?.id,
+            role: res.data?.data?.role,
+            userEmail: res.data?.data?.userId?.email,
+            userId: res.data?.data?.userId?.id,
+          })
+          await axios.post("/email", {
+            to: invitee.key,
+            teamUserId: res.data?.data?.id,
+          })
+        } catch (err) {
+          toast.error(err.response?.data?.message)
+        }
+      })
     )
   )
 
   if (O.isNone(validationResult)) {
     // Error handling for no validation
     toast.error(`${t("error.incorrect_email")}`)
+    sendingInvites.value = false
     return
   }
-
-  sendingInvites.value = true
-
-  sendInvitesResult.value = await pipe(
-    A.sequence(T.task)(validationResult.value),
-    T.chain(
-      flow(
-        A.mapWithIndex((i, el) =>
-          pipe(
-            el,
-            E.foldW(
-              (err) => ({
-                status: "error" as const,
-                email: newInvites.value[i].key as Email,
-                error: err,
-              }),
-              () => ({
-                status: "success" as const,
-                email: newInvites.value[i].key as Email,
-              })
-            )
-          )
-        ),
-        T.of
-      )
-    )
-  )()
-
-  sendingInvites.value = false
+  newInvites.value = [
+    {
+      key: "",
+      value: TeamMemberRole.Viewer,
+    },
+  ]
+  getPendingInvitesList(props.editingTeamID).then(() => {
+    toast.success("Send invited success")
+    sendingInvites.value = false
+  })
 }
 
 const getErrorMessage = (error: SendInvitesErrorType) => {

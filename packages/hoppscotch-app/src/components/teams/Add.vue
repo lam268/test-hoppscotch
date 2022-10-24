@@ -38,16 +38,14 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { pipe } from "fp-ts/function"
-import * as TE from "fp-ts/TaskEither"
-import { createTeam } from "~/helpers/backend/mutations/Team"
-import { TeamNameCodec } from "~/helpers/backend/types/TeamName"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
+import { useAxios } from "~/composables/axios"
 
 const t = useI18n()
 
 const toast = useToast()
+const axios = useAxios()
 
 defineProps<{
   show: boolean
@@ -63,26 +61,14 @@ const isLoading = ref(false)
 
 const addNewTeam = async () => {
   isLoading.value = true
-  await pipe(
-    TeamNameCodec.decode(name.value),
-    TE.fromEither,
-    TE.mapLeft(() => "invalid_name" as const),
-    TE.chainW(createTeam),
-    TE.match(
-      (err) => {
-        // err is of type "invalid_name" | GQLError<Err>
-        if (err === "invalid_name") {
-          toast.error(`${t("team.name_length_insufficient")}`)
-        } else {
-          // Handle GQL errors (use err obj)
-        }
-      },
-      () => {
-        toast.success(`${t("team.new_created")}`)
-        hideModal()
-      }
-    )
-  )()
+  try {
+    await axios.post("/teams", { name: name.value })
+    toast.success(`${t("team.new_created")}`)
+    hideModal()
+  } catch (err) {
+    toast.error(`${err.response.data.message}`)
+  }
+
   isLoading.value = false
 }
 
