@@ -37,21 +37,24 @@ import {
   removeLocalConfig,
 } from "~/newstore/localpersistence"
 
-export type HoppUser = User & {
-  provider?: string
-  accessToken?: string
+export type GoogleUser = {
+  uid: string
+  email: string
+  displayName: string
+  photoURL: string
+  provider: string
 }
 
 export type AuthEvent =
-  | { event: "probable_login"; user: HoppUser } // We have previous login state, but the app is waiting for authentication
-  | { event: "login"; user: HoppUser } // We are authenticated
+  | { event: "probable_login"; user: GoogleUser } // We have previous login state, but the app is waiting for authentication
+  | { event: "login"; user: GoogleUser } // We are authenticated
   | { event: "logout" } // No authentication and we have no previous state
-  | { event: "authTokenUpdate"; user: HoppUser; newToken: string | null } // Token has been updated
+  | { event: "authTokenUpdate"; user: GoogleUser; newToken: string | null } // Token has been updated
 
 /**
  * A BehaviorSubject emitting the currently logged in user (or null if not logged in)
  */
-export const currentUser$ = new BehaviorSubject<HoppUser | null>(null)
+export const currentUser$ = new BehaviorSubject<GoogleUser | null>(null)
 /**
  * A BehaviorSubject emitting the current idToken
  */
@@ -65,7 +68,7 @@ export const authEvents$ = new Subject<AuthEvent>()
 /**
  * Like currentUser$ but also gives probable user value
  */
-export const probableUser$ = new BehaviorSubject<HoppUser | null>(null)
+export const probableUser$ = new BehaviorSubject<GoogleUser | null>(null)
 
 /**
  * Resolves when the probable login resolves into proper login
@@ -133,7 +136,7 @@ export function initAuth() {
         (doc) => {
           const data = doc.data()
 
-          const userUpdate: HoppUser = user
+          const userUpdate: GoogleUser = user
 
           if (data) {
             // Write extra provider data

@@ -42,8 +42,8 @@
           :team-i-d="team.id"
           :team="team"
           :compact="modal"
-          @edit-team="editTeam(team, team.id)"
-          @invite-team="inviteTeam(team, team.id)"
+          @edit-team="editTeam(team, team.id.toString())"
+          @invite-team="inviteTeam(team, team.id.toString())"
         />
       </div>
       <div v-if="!loading && adapterError" class="flex flex-col items-center">

@@ -7,14 +7,14 @@
       class="flex items-start flex-1"
       :class="
         compact
-          ? team.myRole === 'OWNER'
+          ? team.myRole === TeamMemberRole.Owner
             ? 'cursor-pointer hover:bg-primaryDark transition hover:border-dividerDark focus-visible:border-dividerDark'
             : 'cursor-not-allowed bg-primaryLight'
           : ''
       "
       @click="
         compact
-          ? team.myRole === 'OWNER'
+          ? team.myRole === TeamMemberRole.Owner
             ? $emit('invite-team')
             : noPermission()
           : ''
@@ -23,7 +23,9 @@
       <div class="p-4">
         <label
           class="font-semibold text-secondaryDark"
-          :class="{ 'cursor-pointer': compact && team.myRole === 'OWNER' }"
+          :class="{
+            'cursor-pointer': compact && team.myRole === TeamMemberRole.Owner,
+          }"
         >
           {{ team.name || t("state.nothing_found") }}
         </label>
@@ -57,7 +59,7 @@
     <div v-if="!compact" class="flex items-end justify-between flex-shrink-0">
       <span>
         <ButtonSecondary
-          v-if="team.myRole === 'OWNER'"
+          v-if="team.myRole === TeamMemberRole.Owner"
           :icon="IconEdit"
           class="rounded-none"
           :label="t('action.edit')"
@@ -68,7 +70,7 @@
           "
         />
         <ButtonSecondary
-          v-if="team.myRole === 'OWNER'"
+          v-if="team.myRole === TeamMemberRole.Owner"
           :icon="IconUserPlus"
           class="rounded-none"
           :label="t('team.invite')"
@@ -97,19 +99,23 @@
               ref="tippyActions"
               class="flex flex-col focus:outline-none"
               tabindex="0"
-              @keyup.e="team.myRole === 'OWNER' ? edit.$el.click() : null"
+              @keyup.e="
+                team.myRole === TeamMemberRole.Owner ? edit.$el.click() : null
+              "
               @keyup.x="
-                !(team.myRole === 'OWNER' && team.ownersCount == 1)
+                !(team.myRole === TeamMemberRole.Owner && team.ownersCount == 1)
                   ? exit.$el.click()
                   : null
               "
               @keyup.delete="
-                team.myRole === 'OWNER' ? deleteAction.$el.click() : null
+                team.myRole === TeamMemberRole.Owner
+                  ? deleteAction.$el.click()
+                  : null
               "
               @keyup.escape="hide()"
             >
               <SmartItem
-                v-if="team.myRole === 'OWNER'"
+                v-if="team.myRole === TeamMemberRole.Owner"
                 ref="edit"
                 :icon="IconEdit"
                 :label="t('action.edit')"
@@ -122,7 +128,12 @@
                 "
               />
               <SmartItem
-                v-if="!(team.myRole === 'OWNER' && team.ownersCount == 1)"
+                v-if="
+                  !(
+                    team.myRole === TeamMemberRole.Owner &&
+                    team.ownersCount == 1
+                  )
+                "
                 ref="exit"
                 :icon="IconUserX"
                 :label="t('team.exit')"
@@ -135,7 +146,7 @@
                 "
               />
               <SmartItem
-                v-if="team.myRole === 'OWNER'"
+                v-if="team.myRole === TeamMemberRole.Owner"
                 ref="deleteAction"
                 :icon="IconTrash2"
                 :label="t('action.delete')"
@@ -169,13 +180,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { pipe } from "fp-ts/function"
-import * as TE from "fp-ts/TaskEither"
 import { TeamMemberRole } from "~/helpers/backend/graphql"
-import {
-  deleteTeam as backendDeleteTeam,
-  leaveTeam,
-} from "~/helpers/backend/mutations/Team"
 
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
@@ -185,23 +190,28 @@ import IconMoreVertical from "~icons/lucide/more-vertical"
 import IconUserX from "~icons/lucide/user-x"
 import IconUserPlus from "~icons/lucide/user-plus"
 import IconTrash2 from "~icons/lucide/trash-2"
+import axios from "axios"
 
 const t = useI18n()
 
 const props = defineProps<{
   team: {
+    id: string
     name: string
     myRole: TeamMemberRole
+    membershipID: string
     ownersCount: number
     teamMembers: Array<{
+      role: string
+      membershipID: string
       user: {
+        id: string
+        email: string
         displayName: string
         photoURL: string | null
-        email: string | null
       }
     }>
   }
-  teamID: string
   compact: boolean
 }>()
 
@@ -215,36 +225,26 @@ const toast = useToast()
 const confirmRemove = ref(false)
 const confirmExit = ref(false)
 
-const deleteTeam = () => {
-  pipe(
-    backendDeleteTeam(props.teamID),
-    TE.match(
-      (err) => {
-        // TODO: Better errors ? We know the possible errors now
-        toast.error(`${t("error.something_went_wrong")}`)
-        console.error(err)
-      },
-      () => {
-        toast.success(`${t("team.deleted")}`)
-      }
+const deleteTeam = async () => {
+  try {
+    await axios.delete(`/teams/${props.team.id}`)
+    toast.success(`${t("team.deleted")}`)
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message || `${t("error.something_went_wrong")}`
     )
-  )() // Tasks (and TEs) are lazy, so call the function returned
+  }
 }
 
-const exitTeam = () => {
-  pipe(
-    leaveTeam(props.teamID),
-    TE.match(
-      (err) => {
-        // TODO: Better errors ?
-        toast.error(`${t("error.something_went_wrong")}`)
-        console.error(err)
-      },
-      () => {
-        toast.success(`${t("team.left")}`)
-      }
+const exitTeam = async () => {
+  try {
+    await axios.delete(`/team-users/${props.team.membershipID}`)
+    toast.success(`${t("team.left")}`)
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message || `${t("error.something_went_wrong")}`
     )
-  )() // Tasks (and TEs) are lazy, so call the function returned
+  }
 }
 
 const noPermission = () => {
