@@ -12,34 +12,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
 import ErrorPage, { ErrorPageData } from "~/pages/_.vue"
 import { HOPP_MODULES } from "@modules/."
 import { isLoadingInitialRoute } from "@modules/router"
 import { useI18n } from "@composables/i18n"
 import { APP_IS_IN_DEV_MODE } from "@helpers/dev"
-import { useAxios } from "./composables/axios"
-import { authEvents$, HoppUser, probableUser$ } from "./helpers/fb/auth"
+import { ref } from "vue"
 
 const t = useI18n()
-const axios = useAxios()
-onMounted(async () => {
-  const currentUser = await axios.get("/users/me")
-  if (currentUser) {
-    const user = {
-      uid: currentUser.data.id.toString(),
-      email: currentUser.data.email,
-      displayName: currentUser.data.username,
-      provider: currentUser.data.provider,
-      photoURL: currentUser.data.avatar,
-    } as HoppUser
-    probableUser$.next(user)
-    authEvents$.next({
-      event: "login",
-      user,
-    })
-  }
-})
+
 const errorInfo = ref<ErrorPageData | null>(null)
 
 // App Crash Handler

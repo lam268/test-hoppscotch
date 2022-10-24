@@ -6,6 +6,8 @@ import { Subscription as WSubscription } from "wonka"
 import { runGQLQuery, runGQLSubscription } from "../backend/GQLClient"
 import { TeamCollection } from "./TeamCollection"
 import { TeamRequest } from "./TeamRequest"
+import { AxiosInstance } from "axios"
+import { useAxios } from "./../../composables/axios"
 import {
   RootCollectionsOfTeamDocument,
   TeamCollectionAddedDocument,
@@ -185,6 +187,7 @@ type EntityID = `${EntityType}-${string}`
 
 export default class NewTeamCollectionAdapter {
   collections$: BehaviorSubject<TeamCollection[]>
+  axios?: AxiosInstance
 
   // Stream to the list of collections/folders that are being loaded in
   loadingCollections$: BehaviorSubject<string[]>
@@ -228,6 +231,7 @@ export default class NewTeamCollectionAdapter {
     this.teamRequestAddedSub = null
     this.teamRequestDeletedSub = null
     this.teamRequestUpdatedSub = null
+    this.axios = useAxios()
 
     if (this.teamID) this.initialize()
   }
@@ -302,8 +306,8 @@ export default class NewTeamCollectionAdapter {
   }
 
   private async loadRootCollections() {
+    console.log("test")
     if (this.teamID === null) throw new Error("Team ID is null")
-
     this.loadingCollections$.next([
       ...this.loadingCollections$.getValue(),
       "root",
@@ -312,6 +316,10 @@ export default class NewTeamCollectionAdapter {
     const totalCollections: TeamCollection[] = []
 
     while (true) {
+      const listCollection = await this.axios?.get(
+        "/collections?isTeam=False&teamId"
+      )
+      console.log(listCollection)
       const result = await runGQLQuery({
         query: RootCollectionsOfTeamDocument,
         variables: {

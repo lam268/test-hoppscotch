@@ -26,22 +26,19 @@ onMounted(async () => {
     }
     return str.join("&")
   }
-  console.log(serialize(query))
-  const res = await axios
-    .get(
-      `${import.meta.env.VITE_BACKEND_URL}/auth/google/callback?${serialize(
-        query
-      )}`
-    )
-    .then((response: any) => response.data)
+  const res = await axios.get(
+    `${import.meta.env.VITE_BACKEND_URL}/auth/google/callback?${serialize(
+      query
+    )}`
+  )
   const user = {
-    uid: res.data.user.id.toString(),
-    email: res.data.user.email,
-    displayName: res.data.user.username,
-    provider: res.data.user.provider,
-    photoURL: res.data.avatar,
+    uid: res.data.data.user.id.toString(),
+    email: res.data.data.user.email,
+    displayName: res.data.data.user.username,
+    provider: res.data.data.user.provider,
+    photoURL: res.data.data.user.avatar,
   } as HoppUser
-  setLocalConfig("accessToken", res.data.jwt)
+  setLocalConfig("accessToken", res.data.data.jwt)
   probableUser$.next(user)
   currentUser$.next(user)
   authEvents$.next({
