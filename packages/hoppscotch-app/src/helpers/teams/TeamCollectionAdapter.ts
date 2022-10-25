@@ -306,7 +306,6 @@ export default class NewTeamCollectionAdapter {
   }
 
   private async loadRootCollections() {
-    console.log("test")
     if (this.teamID === null) throw new Error("Team ID is null")
     this.loadingCollections$.next([
       ...this.loadingCollections$.getValue(),
@@ -317,7 +316,7 @@ export default class NewTeamCollectionAdapter {
 
     while (true) {
       const listCollection = await this.axios?.get(
-        "/collections?isTeam=False&teamId"
+        `/collections?isTeam=true&teamId=${this.teamID}`
       )
       console.log(listCollection)
       const result = await runGQLQuery({

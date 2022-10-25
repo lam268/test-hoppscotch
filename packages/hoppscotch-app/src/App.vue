@@ -12,12 +12,12 @@
 </template>
 
 <script setup lang="ts">
-import ErrorPage, { ErrorPageData } from "~/pages/_.vue"
-import { HOPP_MODULES } from "@modules/."
-import { isLoadingInitialRoute } from "@modules/router"
 import { useI18n } from "@composables/i18n"
 import { APP_IS_IN_DEV_MODE } from "@helpers/dev"
+import { HOPP_MODULES } from "@modules/."
+import { isLoadingInitialRoute } from "@modules/router"
 import { ref } from "vue"
+import ErrorPage, { ErrorPageData } from "~/pages/_.vue"
 
 const t = useI18n()
 
@@ -29,7 +29,6 @@ const formatErrorMessage = (err: Error | null | undefined) => {
   if (!err) return null
   return `${err.name}: ${err.message}`
 }
-
 // App Crash Handler is only a thing in Dev Mode
 if (APP_IS_IN_DEV_MODE) {
   window.onerror = (_, _1, _2, _3, err) => {

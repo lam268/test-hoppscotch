@@ -3,10 +3,11 @@
 </template>
 <script setup lang="ts">
 import {
-  authEvents$,
   probableUser$,
   currentUser$,
   HoppUser,
+  authIdToken$,
+  authEvents$,
 } from "../../helpers/fb/auth"
 import { useRoute, useRouter } from "vue-router"
 import axios from "axios"
@@ -29,7 +30,12 @@ onMounted(async () => {
   const res = await axios.get(
     `${import.meta.env.VITE_BACKEND_URL}/auth/google/callback?${serialize(
       query
-    )}`
+    )}`,
+    {
+      headers: {
+        Authorization: null,
+      },
+    }
   )
   const user = {
     uid: res.data.data.user.id.toString(),
@@ -38,9 +44,11 @@ onMounted(async () => {
     provider: res.data.data.user.provider,
     photoURL: res.data.data.user.avatar,
   } as HoppUser
-  setLocalConfig("accessToken", res.data.data.jwt)
+  setLocalConfig("login_state", JSON.stringify(user))
+  setLocalConfig("access_token", `Bearer ${res.data.data.jwt}`)
   probableUser$.next(user)
   currentUser$.next(user)
+  authIdToken$.next(res.data.data.jwt)
   authEvents$.next({
     event: "login",
     user,

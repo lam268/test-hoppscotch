@@ -1,9 +1,6 @@
-import { pipe } from "fp-ts/function"
-import * as E from "fp-ts/Either"
 import { BehaviorSubject } from "rxjs"
-import { authIdToken$ } from "../fb/auth"
-import { runGQLQuery } from "../backend/GQLClient"
-import { GetUserInfoDocument } from "../backend/graphql"
+import { authIdToken$, HoppUser } from "../fb/auth"
+import { useAxios } from "./../../composables/axios"
 
 /*
  * This file deals with interfacing data provided by the
@@ -41,9 +38,9 @@ export const currentUserInfo$ = new BehaviorSubject<UserInfo | null>(null)
  * Initializes the currenUserInfo$ view and sets up its update mechanism
  */
 export function initUserInfo() {
-  authIdToken$.subscribe((token) => {
+  authIdToken$.subscribe(async (token) => {
     if (token) {
-      updateUserInfo()
+      await updateUserInfo()
     } else {
       currentUserInfo$.next(null)
     }
@@ -54,22 +51,14 @@ export function initUserInfo() {
  * Runs the actual user info fetching
  */
 async function updateUserInfo() {
-  const result = await runGQLQuery({
-    query: GetUserInfoDocument,
-  })
-
-  currentUserInfo$.next(
-    pipe(
-      result,
-      E.matchW(
-        () => null,
-        (x) => ({
-          uid: x.me.uid,
-          displayName: x.me.displayName ?? null,
-          email: x.me.email ?? null,
-          photoURL: x.me.photoURL ?? null,
-        })
-      )
-    )
-  )
+  const axios = useAxios()
+  const res = await axios.get("/users/me")
+  const user = {
+    uid: res.data.id.toString(),
+    email: res.data.email,
+    displayName: res.data.username,
+    provider: res.data.provider,
+    photoURL: res.data.avatar,
+  } as HoppUser
+  currentUserInfo$.next(user)
 }
