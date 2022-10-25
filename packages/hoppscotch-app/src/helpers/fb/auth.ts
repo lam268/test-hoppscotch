@@ -19,6 +19,7 @@ import {
 import { doc, getFirestore, updateDoc } from "firebase/firestore"
 import { BehaviorSubject, filter, Subject, Subscription } from "rxjs"
 import { getLocalConfig, removeLocalConfig } from "~/newstore/localpersistence"
+import { currentUserInfo$ } from "../teams/BackendUserInfo"
 
 export type HoppUser = User & {
   provider?: string
@@ -78,7 +79,7 @@ export function initAuth() {
 
   probableUser$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
   currentUser$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
-
+  currentUserInfo$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
   // onAuthStateChanged(auth, (user) => {/*  */
   //   /** Whether the user was logged in before */
   //   const wasLoggedIn = currentUser$.value !== null
