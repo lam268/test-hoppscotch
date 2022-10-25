@@ -55,7 +55,7 @@ const defaultRESTSession: RESTSession = {
 export const updateCurrentTab = (payload: any) => {
   const activeTab = getActiveTabRequest()
   if (activeTab) {
-    updateTabRequest(activeTab.id as string, {
+    updateTabRequest(activeTab.tabId as string, {
       ...activeTab,
       ...payload,
     })

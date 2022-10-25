@@ -2,9 +2,9 @@
 <template>
   <SmartRequestTabs v-model="(currentRequest as string)">
     <SmartRequestTab
-      v-for="(tab, index) in getTabsRequest()"
-      :id="tab.id || 'tab-' + index"
-      :key="tab.id || 'tab-' + index"
+      v-for="tab in tabsRequest"
+      :id="(tab.tabId as string)"
+      :key="tab.tabId"
       :name="tab.name"
       :method="tab.method"
     >
@@ -15,13 +15,17 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { getTabsRequest } from "~/newstore/TABSession"
+import { getTabsRequest, tabsRequest$ } from "~/newstore/TABSession"
 
-const firstTab = getTabsRequest()[0]
-
+const tabsRequest = ref(getTabsRequest())
+const firstTab = tabsRequest.value[0]
 const currentRequest = ref<string | undefined | null>(
-  firstTab ? firstTab.id : null
+  firstTab ? firstTab.tabId : null
 )
+
+tabsRequest$.subscribe((tabs) => {
+  tabsRequest.value = tabs
+})
 </script>
 
 <route lang="yaml">

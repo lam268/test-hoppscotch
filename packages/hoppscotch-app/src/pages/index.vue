@@ -60,8 +60,7 @@ import { useStream } from "@composables/stream"
 import { useToast } from "@composables/toast"
 import { onLoggedIn } from "@composables/auth"
 import { loadRequestFromSync, startRequestSync } from "~/helpers/fb/request"
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+
 import { oauthRedirect } from "~/helpers/oauth"
 import { useRoute } from "vue-router"
 import { useSetting } from "~/newstore/settings"

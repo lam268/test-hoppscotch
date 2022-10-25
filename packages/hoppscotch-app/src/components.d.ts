@@ -86,7 +86,6 @@ declare module '@vue/runtime-core' {
     HttpOAuth2Authorization: typeof import('./components/http/OAuth2Authorization.vue')['default']
     HttpParameters: typeof import('./components/http/Parameters.vue')['default']
     HttpPreRequestScript: typeof import('./components/http/PreRequestScript.vue')['default']
-    HttpPreview: typeof import('./components/http/PreView.vue')['default']
     HttpPreView: typeof import('./components/http/PreView.vue')['default']
     HttpRawBody: typeof import('./components/http/RawBody.vue')['default']
     HttpReqChangeConfirmModal: typeof import('./components/http/ReqChangeConfirmModal.vue')['default']

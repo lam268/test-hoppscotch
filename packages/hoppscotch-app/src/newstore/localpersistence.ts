@@ -345,7 +345,7 @@ function setupTabRequestPersistence() {
   }
 
   tabsRequest$.subscribe((tabs) => {
-    const result = uniqBy(cloneDeep(tabs), "id")
+    const result = uniqBy(cloneDeep(tabs), "tabId")
     window.localStorage.setItem("tabRequest", JSON.stringify(result))
   })
 }

@@ -1,3 +1,4 @@
+import { useStream } from "@composables/stream"
 import mitt from "mitt"
 import { cloneDeep } from "lodash-es"
 import { pluck, distinctUntilChanged } from "rxjs/operators"
@@ -6,7 +7,7 @@ import DispatchingStore, { defineDispatchers } from "./DispatchingStore"
 
 export interface ITabRequest extends HoppRESTRequest {
   isActive: boolean
-  collectionRequestID?: string
+  tabId?: string
 }
 
 type TABSession = {
@@ -16,16 +17,12 @@ type TABSession = {
 type EventEmitters = {
   activeTab: string
   updateCurrentMethod: string
-  addTabRequest: {
-    request: ITabRequest
-    collectionRequestID: string
-  }
+  addTabRequest: ITabRequest
 }
 
 export const EventEmitter = mitt<EventEmitters>()
 
-export const getDefaultTABRequest = (id?: string): ITabRequest => ({
-  id: id,
+export const getDefaultTABRequest = (tabId?: string): ITabRequest => ({
   v: RESTReqSchemaVersion,
   endpoint: "https://echo.hoppscotch.io",
   name: "Untitled request",
@@ -44,6 +41,7 @@ export const getDefaultTABRequest = (id?: string): ITabRequest => ({
   },
   isActive: false,
   document: "",
+  tabId: tabId,
 })
 
 export function safelyExtractTabRequest(
@@ -79,27 +77,10 @@ export function safelyExtractTabRequest(
       req.headers = x.headers
     if (x.hasOwnProperty("isActive") && typeof x.isActive === "boolean")
       req.isActive = x.isActive
+    if (x.hasOwnProperty("tabId") && typeof x.tabId === "string")
+      req.tabId = x.tabId
   }
   return req
-}
-
-export const generateTabID = () => {
-  let index = 0
-  while (true) {
-    const id = `tab-${index}`
-    const tab = getTabRequest(id)
-    console.log("tab", tab)
-    if (!tab) return id
-    index++
-  }
-}
-
-export const translateToNewTabRequest = (x: HoppRESTRequest): ITabRequest => {
-  if (!x.id) {
-    x.id = generateTabID()
-  }
-  const result = { ...x, isActive: false }
-  return result
 }
 
 const defaultTABSession: TABSession = {
@@ -120,27 +101,30 @@ const dispatchers = defineDispatchers({
       tabs: [...tabs, newRequest],
     }
   },
-  removeTabRequest({ tabs }: TABSession, { id }: { id: string }): TABSession {
+  removeTabRequest(
+    { tabs }: TABSession,
+    { tabId }: { tabId: string }
+  ): TABSession {
     return {
-      tabs: tabs.filter((tab) => tab.id !== id),
+      tabs: tabs.filter((tab) => tab.tabId !== tabId),
     }
   },
   updateTabRequest(
     { tabs }: TABSession,
-    { id, newRequest }: { id: string; newRequest: ITabRequest }
+    { tabId, newRequest }: { tabId: string; newRequest: ITabRequest }
   ): TABSession {
     return {
-      tabs: tabs.map((tab) => (tab.id === id ? newRequest : tab)),
+      tabs: tabs.map((tab) => (tab.tabId === tabId ? newRequest : tab)),
     }
   },
   setActiveTabRequest(
     { tabs }: TABSession,
-    { id }: { id: string }
+    { tabId }: { tabId: string }
   ): TABSession {
     return {
       tabs: tabs.map((tab) => ({
         ...tab,
-        isActive: tab.id === id,
+        isActive: tab.tabId === tabId,
       })),
     }
   },
@@ -167,34 +151,27 @@ export const addTabRequest = (newRequest: ITabRequest) => {
     dispatcher: "addTabRequest",
     payload: { newRequest },
   })
-  console.log("addTabRequest", tabSessionStore.value.tabs)
 }
 
-export const removeTabRequest = (id: string) => {
+export const removeTabRequest = (tabId: string) => {
   tabSessionStore.dispatch({
     dispatcher: "removeTabRequest",
-    payload: { id },
+    payload: { tabId },
   })
 }
 
-export const updateTabRequest = (id: string, newRequest: ITabRequest) => {
+export const updateTabRequest = (tabId: string, newRequest: ITabRequest) => {
   tabSessionStore.dispatch({
     dispatcher: "updateTabRequest",
-    payload: { id, newRequest },
+    payload: { tabId, newRequest },
   })
 }
 
-export const setActiveTabRequest = (id: string) => {
+export const setActiveTabRequest = (tabId: string) => {
   tabSessionStore.dispatch({
     dispatcher: "setActiveTabRequest",
-    payload: { id },
+    payload: { tabId: tabId },
   })
-}
-
-export const getTabFromCollectionRequestID = (collectionRequestID: string) => {
-  return tabSessionStore.value.tabs.find(
-    (tab) => tab.collectionRequestID === collectionRequestID
-  )
 }
 
 export const getTabSize = () => {
@@ -205,11 +182,15 @@ export const getActiveTabRequest = () => {
   return tabSessionStore.value.tabs.find((tab) => tab.isActive)
 }
 
-export const getTabRequest = (id: string) => {
-  return tabSessionStore.value.tabs.find((tab) => tab.id === id)
+export const getTabRequest = (tabId: string) => {
+  return tabSessionStore.value.tabs.find((tab) => tab.tabId === tabId)
 }
 
 export const tabsRequest$ = tabSessionStore.subject$.pipe(
   pluck("tabs"),
   distinctUntilChanged()
 )
+
+export const useTabsRequest = () => {
+  useStream(tabsRequest$, tabSessionStore.value.tabs, setTabsRequest)
+}

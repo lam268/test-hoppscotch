@@ -10,9 +10,9 @@
   >
     <Pane
       v-if="SIDEBAR && hasSidebarDocs"
-      :size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2.25"
-      :max-size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2.25"
-      min-size="2.25"
+      :size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2"
+      :max-size="OPEN_DOCS ? PANE_RIGHT_SIDEBAR_SIZE : 2"
+      min-size="2"
       class="hide-scrollbar !overflow-auto flex flex-col"
     >
       <slot name="docs" />
@@ -42,7 +42,7 @@
       v-if="SIDEBAR && hasSidebar"
       :size="PANE_SIDEBAR_SIZE"
       max-size="25"
-      min-size="3"
+      min-size="2.5"
       class="flex flex-col !overflow-auto bg-primaryContrast"
     >
       <slot name="sidebar" />
