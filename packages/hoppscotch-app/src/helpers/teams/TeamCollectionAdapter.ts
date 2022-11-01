@@ -1,24 +1,23 @@
-import * as E from "fp-ts/Either"
-import { BehaviorSubject, Subscription } from "rxjs"
 import { translateToNewRequest } from "@hoppscotch/data"
-import { pull, remove } from "lodash-es"
-import { Subscription as WSubscription } from "wonka"
-import { runGQLQuery, runGQLSubscription } from "../backend/GQLClient"
-import { TeamCollection } from "./TeamCollection"
-import { TeamRequest } from "./TeamRequest"
 import { AxiosInstance } from "axios"
-import { useAxios } from "./../../composables/axios"
+import * as E from "fp-ts/Either"
+import { pull, remove } from "lodash-es"
+import { BehaviorSubject, Subscription } from "rxjs"
+import { Subscription as WSubscription } from "wonka"
 import {
-  RootCollectionsOfTeamDocument,
-  TeamCollectionAddedDocument,
-  TeamCollectionUpdatedDocument,
-  TeamCollectionRemovedDocument,
-  TeamRequestAddedDocument,
-  TeamRequestUpdatedDocument,
-  TeamRequestDeletedDocument,
   GetCollectionChildrenDocument,
   GetCollectionRequestsDocument,
+  TeamCollectionAddedDocument,
+  TeamCollectionRemovedDocument,
+  TeamCollectionUpdatedDocument,
+  TeamRequestAddedDocument,
+  TeamRequestDeletedDocument,
+  TeamRequestUpdatedDocument,
 } from "~/helpers/backend/graphql"
+import { runGQLQuery, runGQLSubscription } from "../backend/GQLClient"
+import { useAxios } from "./../../composables/axios"
+import { TeamCollection } from "./TeamCollection"
+import { TeamRequest } from "./TeamRequest"
 
 const TEAMS_BACKEND_PAGE_SIZE = 10
 
@@ -314,44 +313,44 @@ export default class NewTeamCollectionAdapter {
 
     const totalCollections: TeamCollection[] = []
 
-    while (true) {
-      const listCollection = await this.axios?.get(
-        `/collections?isTeam=true&teamId=${this.teamID}`
-      )
-      console.log(listCollection)
-      const result = await runGQLQuery({
-        query: RootCollectionsOfTeamDocument,
-        variables: {
-          teamID: this.teamID,
-          cursor:
-            totalCollections.length > 0
-              ? totalCollections[totalCollections.length - 1].id
-              : undefined,
-        },
-      })
+    // while (true) {
+    const listCollection = await this.axios?.get(
+      `/collections?isTeam=true&teamId=${this.teamID}`
+    )
+    const result = listCollection?.data?.data?.items
+    // const result = await runGQLQuery({
+    //   query: RootCollectionsOfTeamDocument,
+    //   variables: {
+    //     teamID: this.teamID,
+    //     cursor:
+    //       totalCollections.length > 0
+    //         ? totalCollections[totalCollections.length - 1].id
+    //         : undefined,
+    //   },
+    // })
 
-      if (E.isLeft(result)) {
-        this.loadingCollections$.next(
-          this.loadingCollections$.getValue().filter((x) => x !== "root")
-        )
-
-        throw new Error(`Error fetching root collections: ${result}`)
-      }
-
-      totalCollections.push(
-        ...result.right.rootCollectionsOfTeam.map(
-          (x) =>
-            <TeamCollection>{
-              ...x,
-              children: null,
-              requests: null,
-            }
-        )
+    if (E.isLeft(result)) {
+      this.loadingCollections$.next(
+        this.loadingCollections$.getValue().filter((x) => console.log("f", x))
       )
 
-      if (result.right.rootCollectionsOfTeam.length !== TEAMS_BACKEND_PAGE_SIZE)
-        break
+      throw new Error(`Error fetching root collections: ${result}`)
     }
+    totalCollections.push(
+      ...result.map(
+        (x: any) =>
+          <TeamCollection>{
+            id: x.id,
+            title: x.title,
+            children: x.collection.children,
+            requests: x.collection.requests,
+          }
+      )
+    )
+
+    // if (result.right.rootCollectionsOfTeam.length !== TEAMS_BACKEND_PAGE_SIZE)
+    //   break
+    // }
 
     this.loadingCollections$.next(
       this.loadingCollections$.getValue().filter((x) => x !== "root")
@@ -484,8 +483,8 @@ export default class NewTeamCollectionAdapter {
       this.addCollection(
         {
           id: result.right.teamCollectionAdded.id,
-          children: null,
-          requests: null,
+          children: [],
+          requests: [],
           title: result.right.teamCollectionAdded.title,
         },
         result.right.teamCollectionAdded.parent?.id ?? null
@@ -646,8 +645,8 @@ export default class NewTeamCollectionAdapter {
             <TeamCollection>{
               id: el.id,
               title: el.title,
-              children: null,
-              requests: null,
+              children: [],
+              requests: [],
             }
         )
       )

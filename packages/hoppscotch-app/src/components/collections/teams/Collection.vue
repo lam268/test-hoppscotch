@@ -154,6 +154,7 @@
         class="bg-dividerLight cursor-nsResize flex ml-5.5 transform transition w-1 hover:bg-dividerDark hover:scale-x-125"
         @click="toggleShowChildren()"
       ></div>
+
       <div class="flex flex-col flex-1 truncate">
         <CollectionsTeamsFolder
           v-for="(folder, index) in collection.children"
@@ -161,7 +162,9 @@
           :folder="folder"
           :folder-index="index"
           :folder-path="`${collectionIndex}/${index}`"
+          :parent-collection="collection"
           :collection-index="collectionIndex"
+          :collection-id="collection.id"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :is-filtered="isFiltered"
@@ -180,11 +183,13 @@
         <CollectionsTeamsRequest
           v-for="(request, index) in collection.requests"
           :key="`request-${index}`"
-          :request="request.request"
+          :request="request"
           :collection-index="collectionIndex"
+          :folder-path="`${collectionIndex}/${index}`"
+          :parent-collection="collection as TeamCollection"
           :folder-index="-1"
           :folder-name="collection.name"
-          :request-index="request.id"
+          :request-index="request.id.toString()"
           :save-request="saveRequest"
           :collection-i-d="collection.id"
           :collections-type="collectionsType"
@@ -194,10 +199,7 @@
           @remove-request="$emit('remove-request', $event)"
           @duplicate-request="$emit('duplicate-request', $event)"
         />
-        <div
-          v-if="loadingCollectionIDs.includes(collection.id)"
-          class="flex flex-col items-center justify-center p-4"
-        >
+        <div v-if="false" class="flex flex-col items-center justify-center p-4">
           <SmartSpinner class="my-4" />
           <span class="text-secondaryLight">{{ t("state.loading") }}</span>
         </div>
@@ -248,6 +250,7 @@ import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { TippyComponent } from "vue-tippy"
 import SmartItem from "@components/smart/Item.vue"
+import { TeamCollection } from "~/helpers/teams/TeamCollection"
 
 export default defineComponent({
   props: {

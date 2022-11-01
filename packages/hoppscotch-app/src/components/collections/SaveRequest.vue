@@ -116,10 +116,11 @@ type Picked =
   | {
       pickedType: "teams-request"
       requestID: string
+      folderPath: string
     }
   | {
       pickedType: "teams-folder"
-      folderID: string
+      folderPath: string
     }
   | {
       pickedType: "teams-collection"
@@ -277,7 +278,7 @@ const saveRequestAs = async () => {
   } else if (picked.value.pickedType === "teams-request") {
     if (!isHoppRESTRequest(requestUpdated))
       throw new Error("requestUpdated is not a REST Request")
-
+    console.log(requestUpdated)
     if (collectionsType.value.type !== "team-collections")
       throw new Error("Collections Type mismatch")
 
@@ -300,6 +301,7 @@ const saveRequestAs = async () => {
       originLocation: "team-collection",
       requestID: picked.value.requestID,
       req: cloneDeep(requestUpdated),
+      folderPath: picked.value.folderPath,
     })
   } else if (picked.value.pickedType === "teams-folder") {
     if (!isHoppRESTRequest(requestUpdated))
@@ -325,8 +327,9 @@ const saveRequestAs = async () => {
         originLocation: "team-collection",
         requestID: result.right.createRequestInCollection.id,
         teamID: collectionsType.value.selectedTeam.id,
-        collectionID: picked.value.folderID,
+        // collectionID: picked.value.folderID,
         req: cloneDeep(requestUpdated),
+        folderPath: picked.value.folderPath,
       })
 
       requestSaved()
@@ -355,8 +358,9 @@ const saveRequestAs = async () => {
         originLocation: "team-collection",
         requestID: result.right.createRequestInCollection.id,
         teamID: collectionsType.value.selectedTeam.id,
-        collectionID: picked.value.collectionID,
+        // collectionID: picked.value.collectionID,
         req: cloneDeep(requestUpdated),
+        folderPath: picked.value.collectionID,
       })
 
       requestSaved()

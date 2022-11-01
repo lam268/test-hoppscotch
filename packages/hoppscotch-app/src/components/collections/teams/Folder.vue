@@ -102,12 +102,7 @@
                   :shortcut="['E']"
                   @click="
                     () => {
-                      $emit('edit-folder', {
-                        folder,
-                        folderIndex,
-                        collectionIndex,
-                        folderPath: '',
-                      })
+                      editFolder()
                       hide()
                     }
                   "
@@ -150,10 +145,13 @@
           :key="`subFolder-${subFolderIndex}`"
           :folder="subFolder"
           :folder-index="subFolderIndex"
+          :folder-path="`${folderPath}/${subFolderIndex}`"
+          :parent-collection="parentCollection"
           :collection-index="collectionIndex"
+          :collection-id="collectionID"
           :save-request="saveRequest"
           :collections-type="collectionsType"
-          :folder-path="`${folderPath}/${subFolderIndex}`"
+          :is-filtered="isFiltered"
           :picked="picked"
           :loading-collection-i-ds="loadingCollectionIDs"
           @add-request="$emit('add-request', $event)"
@@ -170,11 +168,13 @@
         <CollectionsTeamsRequest
           v-for="(request, index) in folder.requests"
           :key="`request-${index}`"
-          :request="request.request"
+          :request="request"
           :collection-index="collectionIndex"
+          :folder-path="`${folderPath}/${index}`"
+          :parent-collection="(parentCollection  as TeamCollection)"
           :folder-index="folderIndex"
           :folder-name="folder.name"
-          :request-index="request.id"
+          :request-index="request.id.toString()"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :picked="picked"
@@ -241,11 +241,13 @@ export default defineComponent({
   props: {
     folder: { type: Object, default: () => ({}) },
     folderIndex: { type: Number, default: null },
-    collectionIndex: { type: Number, default: null },
     folderPath: { type: String, default: null },
+    parentCollection: { type: Object, default: () => ({}) },
+    collectionIndex: { type: Number, default: null },
+    collectionID: { type: String, default: null },
     saveRequest: Boolean,
-    isFiltered: Boolean,
     collectionsType: { type: Object, default: () => ({}) },
+    isFiltered: Boolean,
     picked: { type: Object, default: () => ({}) },
     loadingCollectionIDs: { type: Array, default: () => [] },
   },
@@ -299,7 +301,7 @@ export default defineComponent({
       return (
         this.picked &&
         this.picked.pickedType === "teams-folder" &&
-        this.picked.folderID === this.folder.id
+        this.picked.folderPath === this.folderPath
       )
     },
     getCollectionIcon() {
@@ -352,7 +354,7 @@ export default defineComponent({
         this.$emit("select", {
           picked: {
             pickedType: "teams-folder",
-            folderID: this.folder.id,
+            folderPath: this.folderPath,
           },
         })
 
@@ -363,6 +365,16 @@ export default defineComponent({
       this.$emit("remove-folder", {
         collectionsType: this.collectionsType,
         folder: this.folder,
+        folderPath: this.folderPath,
+        folderIndex: this.folderIndex,
+      })
+    },
+
+    editFolder() {
+      this.$emit("edit-folder", {
+        folder: this.folder,
+        folderPath: this.folderPath,
+        folderIndex: this.folderIndex,
       })
     },
     expandCollection(collectionID: number) {

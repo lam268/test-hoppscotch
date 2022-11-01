@@ -35,6 +35,10 @@ export type HoppRequestSaveContext =
        */
       requestID: string
       /**
+       * Path to the request folder
+       */
+      folderPath: string
+      /**
        * ID of the team
        */
       teamID?: string
