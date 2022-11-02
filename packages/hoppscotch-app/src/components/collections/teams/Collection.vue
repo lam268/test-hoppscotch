@@ -382,6 +382,7 @@ export default defineComponent({
             pickedType: "teams-collection",
             collectionID: this.collection.id,
           },
+          parentCollection: this.$props.collection,
         })
 
       this.$emit("expand-collection", this.collection.id)

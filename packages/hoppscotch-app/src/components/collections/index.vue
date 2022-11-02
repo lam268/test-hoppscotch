@@ -916,7 +916,7 @@ export default defineComponent({
       this.displayModalAddRequest(true)
     },
     async onAddRequest({ name, folder, path }) {
-      let newRequest = {
+      const newRequest = {
         ...cloneDeep(getRESTRequest()),
         name,
       }

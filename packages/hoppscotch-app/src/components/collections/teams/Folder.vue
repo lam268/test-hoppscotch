@@ -174,7 +174,7 @@
           :parent-collection="(parentCollection  as TeamCollection)"
           :folder-index="folderIndex"
           :folder-name="folder.name"
-          :request-index="request.id.toString()"
+          :request-index="request.id"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :picked="picked"
@@ -356,8 +356,8 @@ export default defineComponent({
             pickedType: "teams-folder",
             folderPath: this.folderPath,
           },
+          parentCollection: this.$props.parentCollection,
         })
-
       this.$emit("expand-collection", this.$props.folder.id)
       this.showChildren = !this.showChildren
     },

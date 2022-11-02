@@ -308,6 +308,7 @@ const setRestReq = (request: HoppRESTRequest) => {
       originLocation: "team-collection",
       requestID: props.requestIndex,
       req: request,
+      folderPath: props.folderPath,
     }
   )
 }
@@ -321,6 +322,7 @@ const selectRequest = () => {
         requestID: props.requestIndex,
         folderPath: props.folderPath,
       },
+      parentCollection: props.parentCollection,
     })
   } else if (isEqualHoppRESTRequest(props.request, getDefaultRESTRequest())) {
     confirmChange.value = false
@@ -330,6 +332,7 @@ const selectRequest = () => {
   } else {
     const currentReqWithNoChange = active.value.req
     const currentFullReq = getRESTRequest()
+    currentFullReq.id = active.value.req?.id
     // Check if whether user clicked the same request or not
     if (!isActive.value && currentReqWithNoChange) {
       // Check if there is any changes done on the current request
@@ -342,7 +345,11 @@ const selectRequest = () => {
           folderPath: props.folderPath,
         })
       } else {
-        confirmChange.value = true
+        if (props.folderPath[0] !== active.value.folderPath[0]) {
+          showSaveRequestModal.value = true
+        } else {
+          confirmChange.value = true
+        }
       }
     } else {
       setRESTSaveContext(null)
