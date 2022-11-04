@@ -26,7 +26,7 @@ export default defineComponent({
 })
 </script>
 <style scoped lang="scss">
-::v-deep .break-word {
+::v-deep(.break-word) {
   word-wrap: break-word;
   -ms-word-break: break-all;
   word-break: break-all;
@@ -127,7 +127,7 @@ html.light .markdown-body {
   --color-danger-fg: #cf222e;
 }
 
-::v-deep .markdown-body {
+::v-deep(.markdown-body) {
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
   margin: 0;

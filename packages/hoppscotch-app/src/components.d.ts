@@ -161,5 +161,4 @@ declare module '@vue/runtime-core' {
     TeamsTeam: typeof import('./components/teams/Team.vue')['default']
     Tippy: typeof import('vue-tippy')['Tippy']
   }
-
 }

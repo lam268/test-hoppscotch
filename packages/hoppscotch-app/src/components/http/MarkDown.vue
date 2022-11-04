@@ -38,7 +38,7 @@ watch(
 )
 </script>
 <style scoped lang="scss">
-::v-deep .text-editor {
+::v-deep(.text-editor) {
   max-width: 100%;
   font-size: 16px;
   line-height: 2;
