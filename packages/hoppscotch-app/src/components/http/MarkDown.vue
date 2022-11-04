@@ -12,6 +12,7 @@
 import MarkdownIt from "markdown-it"
 
 import EmojiPlugin from "markdown-it-emoji"
+import { tasksLists as TaskListPlugin } from "@hedgedoc/markdown-it-plugins"
 import { watch } from "vue"
 import { useRESTRequestDocument } from "~/newstore/RESTSession"
 
@@ -20,7 +21,9 @@ const converter = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-}).use(EmojiPlugin)
+})
+  .use(EmojiPlugin)
+  .use(TaskListPlugin)
 
 const emit = defineEmits<{
   (e: "onchange-text", docs: string): void
@@ -42,11 +45,16 @@ watch(
   max-width: 100%;
   font-size: 16px;
   line-height: 2;
-  white-space: pre-wrap; /* CSS3 */
-  white-space: -moz-pre-wrap; /* Firefox */
-  white-space: -pre-wrap; /* Opera <7 */
-  white-space: -o-pre-wrap; /* Opera 7 */
-  word-wrap: break-word; /* IE */
+  white-space: pre-wrap;
+  /* CSS3 */
+  white-space: -moz-pre-wrap;
+  /* Firefox */
+  white-space: -pre-wrap;
+  /* Opera <7 */
+  white-space: -o-pre-wrap;
+  /* Opera 7 */
+  word-wrap: break-word;
+  /* IE */
   overflow-y: scroll;
   height: 100%;
   resize: none;
