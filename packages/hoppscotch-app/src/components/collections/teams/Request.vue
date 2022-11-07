@@ -92,6 +92,7 @@
                         folderName,
                         request,
                         requestIndex,
+                        folderPath,
                       })
                       hide()
                     }
@@ -224,8 +225,9 @@ const emit = defineEmits<{
       collectionIndex: number
       folderIndex: number
       folderName: string | undefined
-      requestIndex: string
       request: HoppRESTRequest
+      requestIndex: string
+      folderPath: string
     }
   ): void
 
@@ -416,7 +418,8 @@ const saveCurrentRequest = async (saveCtx: HoppRequestSaveContext | null) => {
         toast.error(t("error.something_went_wrong"))
       }
     } catch (err) {
-      toast.error(err?.response?.message)
+      toast.error(err?.response?.data?.message)
+      showSaveRequestModal.value = false
     }
   } else if (saveCtx.originLocation === "user-collection") {
     try {
