@@ -189,7 +189,7 @@
           :parent-collection="collection"
           :folder-index="-1"
           :folder-name="collection.title"
-          :request-index="index"
+          :request-index="index.toString()"
           :save-request="saveRequest"
           :collection-i-d="collection.id"
           :collections-type="collectionsType"

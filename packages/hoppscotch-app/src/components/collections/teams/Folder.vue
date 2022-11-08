@@ -171,7 +171,7 @@
           :request="request"
           :collection-index="collectionIndex"
           :folder-path="`${folderPath}/${index}`"
-          :parent-collection="(parentCollection  as TeamCollection)"
+          :parent-collection="parentCollection"
           :folder-index="folderIndex"
           :folder-name="folder.name"
           :request-index="request.id"

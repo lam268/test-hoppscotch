@@ -166,7 +166,7 @@
           :folder-index="-1"
           :folder-name="collection.name"
           :folder-path="`${collectionIndex}`"
-          :request-index="index"
+          :request-index="index.toString()"
           @edit-request="$emit('edit-request', $event)"
           @duplicate-request="$emit('duplicate-request', $event)"
           @select="$emit('select', $event)"
