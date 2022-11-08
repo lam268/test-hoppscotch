@@ -186,7 +186,7 @@
           :request="request"
           :collection-index="collectionIndex"
           :folder-path="`${collectionIndex}/${index}`"
-          :parent-collection="collection as TeamCollection"
+          :parent-collection="collection"
           :folder-index="-1"
           :folder-name="collection.title"
           :request-index="index"
@@ -250,8 +250,6 @@ import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { TippyComponent } from "vue-tippy"
 import SmartItem from "@components/smart/Item.vue"
-import { TeamCollection } from "~/helpers/teams/TeamCollection"
-
 export default defineComponent({
   props: {
     collectionIndex: { type: Number, default: null },
