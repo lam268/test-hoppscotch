@@ -357,7 +357,7 @@ export default defineComponent({
         ) {
           const filteredCollection = Object.assign({}, collection)
           filteredCollection.requests = filteredRequests
-          filteredCollection.folders = filteredFolders
+          filteredCollection.children = filteredFolders
           filteredCollections.push(filteredCollection)
         }
       }
@@ -403,12 +403,12 @@ export default defineComponent({
       this.$emit("update-coll-type", this.collectionsType)
     },
     // Intented to be called by the CollectionAdd modal submit event
-    async addNewRootCollection(name) {
+    async addNewRootCollection(title) {
       const axios = useAxios()
       if (this.collectionsType.type === "my-collections") {
         addRESTCollection(
           makeCollection({
-            name,
+            title,
             folders: [],
             requests: [],
           })
@@ -416,7 +416,7 @@ export default defineComponent({
         this.modalLoadingState = true
         try {
           const newTeamFolder = await axios.post("/collections", {
-            title: name,
+            title: title,
             isTeam: false,
           })
           this.modalLoadingState = false
@@ -436,7 +436,7 @@ export default defineComponent({
         this.modalLoadingState = true
         try {
           const newTeamFolder = await axios.post("/collections", {
-            title: name,
+            title: title,
             teamId: this.collectionsType.selectedTeam.id,
             isTeam: true,
           })
@@ -444,7 +444,7 @@ export default defineComponent({
           if (newTeamFolder) {
             this.filteredCollections.push({
               id: newTeamFolder.data?.data?.id,
-              title: name,
+              title: title,
               children: [],
               requests: [],
             })
@@ -459,8 +459,8 @@ export default defineComponent({
       }
     },
     // Intented to be called by CollectionEdit modal submit event
-    async updateEditingCollection(newName) {
-      if (!newName) {
+    async updateEditingCollection(newTitle) {
+      if (!newTitle) {
         this.toast.error(this.t("collection.invalid_name"))
         return
       }
@@ -468,7 +468,7 @@ export default defineComponent({
       if (this.collectionsType.type === "my-collections") {
         const collectionUpdated = {
           ...this.editingCollection,
-          name: newName,
+          title: newTitle,
         }
 
         editRESTCollection(this.editingCollectionIndex, collectionUpdated)
@@ -480,7 +480,7 @@ export default defineComponent({
         this.modalLoadingState = true
         const collectionUpdated = {
           ...this.editingCollection,
-          title: newName,
+          title: newTitle,
         }
         try {
           const updatedCollection = await axios.put(
@@ -505,7 +505,7 @@ export default defineComponent({
       }
     },
     // Intended to be called by CollectionEditFolder modal submit event
-    async updateEditingFolder(name) {
+    async updateEditingFolder(title) {
       const pathTree = this.$data.editingFolderPath
         .split("/")
         .map((x) => parseInt(x))
@@ -514,16 +514,16 @@ export default defineComponent({
       for (let i = 1; i < pathTree.length; i++) {
         targetJson = targetJson.children[pathTree[i]]
       }
-      targetJson.title = name
+      targetJson.title = title
       if (this.collectionsType.type === "my-collections") {
-        editRESTFolder(this.editingFolderPath, { ...this.editingFolder, name })
+        editRESTFolder(this.editingFolderPath, { ...this.editingFolder, title })
         this.displayModalEditFolder(false)
       } else if (
         this.collectionsType.type === "team-collections" &&
         this.collectionsType.selectedTeam.myRole !== "VIEWER"
       ) {
         this.modalLoadingState = true
-        targetJson.title = name
+        targetJson.title = title
         try {
           const updatedCollection = await axios.put(
             `/collections/${this.$data.editingCollectionID}`,
@@ -664,11 +664,11 @@ export default defineComponent({
       this.$data.editingCollectionIndex = collectionIndex
       this.displayModalEdit(true)
     },
-    async onAddFolder({ name, folder, path }) {
+    async onAddFolder({ title, folder, path }) {
       const pathTree = path.split("/").map((x) => parseInt(x))
       const axios = useAxios()
       if (this.collectionsType.type === "my-collections") {
-        addRESTFolder(name, path)
+        addRESTFolder(title, path)
         this.displayModalAddFolder(false)
       } else if (
         this.collectionsType.type === "team-collections" &&
@@ -678,7 +678,7 @@ export default defineComponent({
         if (!folder.children) folder.children = []
         folder.children.push({
           id: folder.children.length,
-          title: name,
+          title: title,
           children: [],
           requests: [],
         })

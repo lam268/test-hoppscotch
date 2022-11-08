@@ -9,7 +9,7 @@
       <div class="flex flex-col">
         <input
           id="selectLabelEditFolder"
-          v-model="name"
+          v-model="title"
           v-focus
           class="input floating-input"
           placeholder=" "
@@ -61,24 +61,24 @@ export default defineComponent({
   },
   data() {
     return {
-      name: null,
+      title: null,
     }
   },
   watch: {
     editingFolderName(val) {
-      this.name = val
+      this.title = val
     },
   },
   methods: {
     editFolder() {
-      if (!this.name) {
+      if (!this.title) {
         this.toast.error(this.t("folder.invalid_name"))
         return
       }
-      this.$emit("submit", this.name)
+      this.$emit("submit", this.title)
     },
     hideModal() {
-      this.name = null
+      this.title = null
       this.$emit("hide-modal")
     },
   },

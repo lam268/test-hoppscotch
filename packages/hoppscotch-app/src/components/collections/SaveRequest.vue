@@ -384,7 +384,6 @@ const saveRequestAs = async () => {
 
     if (collectionsType.value.type !== "team-collections")
       throw new Error("Collections Type mismatch")
-    console.log(picked.value.collectionID)
     const result = await runMutation(CreateRequestInCollectionDocument, {
       collectionID: picked.value.collectionID,
       data: {

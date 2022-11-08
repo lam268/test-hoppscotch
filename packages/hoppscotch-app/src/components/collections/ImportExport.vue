@@ -184,6 +184,7 @@ import {
   ExportAsJsonDocument,
   ImportFromJsonDocument,
 } from "~/helpers/backend/graphql"
+import { TeamCollection } from "~/helpers/teams/TeamCollection"
 
 const props = defineProps<{
   show: boolean
@@ -195,6 +196,7 @@ const props = defineProps<{
         }
       }
     | { type: "my-collections" }
+  filteredCollections: TeamCollection[]
 }>()
 
 const emit = defineEmits<{

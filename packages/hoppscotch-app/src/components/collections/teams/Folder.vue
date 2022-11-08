@@ -25,7 +25,7 @@
         @click="toggleShowChildren()"
       >
         <span class="truncate" :class="{ 'text-accent': isSelected }">
-          {{ folder.name ? folder.name : folder.title }}
+          {{ folder.title ? folder.title : folder.title }}
         </span>
       </span>
       <div class="flex">
@@ -173,8 +173,8 @@
           :folder-path="`${folderPath}/${index}`"
           :parent-collection="parentCollection"
           :folder-index="folderIndex"
-          :folder-name="folder.name"
-          :request-index="request.id"
+          :folder-name="folder.title"
+          :request-index="index"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :picked="picked"
@@ -335,7 +335,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${hoppColl.name}.json`
+      a.download = `${hoppColl.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())

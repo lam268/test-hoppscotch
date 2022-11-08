@@ -11,8 +11,8 @@ import { getRESTSaveContext, setRESTSaveContext } from "./RESTSession"
 const defaultRESTCollectionState = {
   state: [
     makeCollection<HoppRESTRequest>({
-      name: "My Collection",
-      folders: [],
+      title: "My Collection",
+      children: [],
       requests: [],
     }),
   ],
@@ -21,8 +21,8 @@ const defaultRESTCollectionState = {
 const defaultGraphqlCollectionState = {
   state: [
     makeCollection<HoppGQLRequest>({
-      name: "My GraphQL Collection",
-      folders: [],
+      title: "My GraphQL Collection",
+      children: [],
       requests: [],
     }),
   ],
@@ -40,7 +40,7 @@ function navigateToFolderWithIndexPath(
   let target = collections[indexPaths.shift() as number]
 
   while (indexPaths.length > 0)
-    target = target.folders[indexPaths.shift() as number]
+    target = target.children[indexPaths.shift() as number]
 
   return target !== undefined ? target : null
 }
@@ -100,11 +100,11 @@ const restCollectionDispatchers = defineDispatchers({
 
   addFolder(
     { state }: RESTCollectionStoreType,
-    { name, path }: { name: string; path: string }
+    { title, path }: { title: string; path: string }
   ) {
     const newFolder: HoppCollection<HoppRESTRequest> = makeCollection({
-      name,
-      folders: [],
+      title,
+      children: [],
       requests: [],
     })
 
@@ -117,9 +117,10 @@ const restCollectionDispatchers = defineDispatchers({
       console.log(`Could not parse path '${path}'. Ignoring add folder request`)
       return {}
     }
-
-    target.folders.push(newFolder)
-
+    if (!target.children) {
+      target.children = []
+    }
+    target.children.push(newFolder)
     return {
       state: newState,
     }
@@ -173,7 +174,7 @@ const restCollectionDispatchers = defineDispatchers({
       return {}
     }
 
-    containingFolder.folders.splice(folderIndex, 1)
+    containingFolder.children.splice(folderIndex, 1)
 
     return {
       state: newState,
@@ -366,11 +367,11 @@ const gqlCollectionDispatchers = defineDispatchers({
 
   addFolder(
     { state }: GraphqlCollectionStoreType,
-    { name, path }: { name: string; path: string }
+    { title, path }: { title: string; path: string }
   ) {
     const newFolder: HoppCollection<HoppGQLRequest> = makeCollection({
-      name,
-      folders: [],
+      title,
+      children: [],
       requests: [],
     })
 
@@ -384,7 +385,7 @@ const gqlCollectionDispatchers = defineDispatchers({
       return {}
     }
 
-    target.folders.push(newFolder)
+    target.children.push(newFolder)
 
     return {
       state: newState,
@@ -442,7 +443,7 @@ const gqlCollectionDispatchers = defineDispatchers({
       return {}
     }
 
-    containingFolder.folders.splice(folderIndex, 1)
+    containingFolder.children.splice(folderIndex, 1)
 
     return {
       state: newState,
@@ -653,11 +654,11 @@ export function editRESTCollection(
   })
 }
 
-export function addRESTFolder(name: string, path: string) {
+export function addRESTFolder(title: string, path: string) {
   restCollectionStore.dispatch({
     dispatcher: "addFolder",
     payload: {
-      name,
+      title,
       path,
     },
   })
@@ -806,11 +807,11 @@ export function editGraphqlCollection(
   })
 }
 
-export function addGraphqlFolder(name: string, path: string) {
+export function addGraphqlFolder(title: string, path: string) {
   graphqlCollectionStore.dispatch({
     dispatcher: "addFolder",
     payload: {
-      name,
+      title,
       path,
     },
   })

@@ -57,7 +57,7 @@
         />
         <span>
           <tippy
-            v-if="collectionsType.selectedTeam.myRole !== 'VIEWER'"
+            v-if="collectionsType?.selectedTeam?.myRole !== 'VIEWER'"
             ref="options"
             interactive
             trigger="click"
@@ -183,8 +183,8 @@ const props = defineProps<{
   folderPath: string
   parentCollection: TeamCollection
   folderIndex: number
-  folderName?: string
-  requestIndex: string
+  folderName: string
+  requestIndex: number
   saveRequest: boolean
   collectionsType: {
     type: "my-collections" | "team-collections"
@@ -193,7 +193,7 @@ const props = defineProps<{
   collectionID: number
   picked?: {
     pickedType: string
-    requestID: string
+    requestID: number
     folderPath: string
   }
 }>()
@@ -224,9 +224,9 @@ const emit = defineEmits<{
     data: {
       collectionIndex: number
       folderIndex: number
-      folderName: string | undefined
+      folderName: string
       request: HoppRESTRequest
-      requestIndex: string
+      requestIndex: number
       folderPath: string
     }
   ): void
@@ -308,7 +308,7 @@ const setRestReq = (request: HoppRESTRequest) => {
     ),
     {
       originLocation: "team-collection",
-      requestID: props.requestIndex,
+      requestID: props.requestIndex.toString(),
       req: request,
       folderPath: props.folderPath,
     }
@@ -342,7 +342,7 @@ const selectRequest = () => {
         setRestReq(props.request)
         setRESTSaveContext({
           originLocation: "team-collection",
-          requestID: props.requestIndex,
+          requestID: props.requestIndex.toString(),
           req: props.request,
           folderPath: props.folderPath,
         })
@@ -372,7 +372,7 @@ const discardRequestChange = () => {
   if (!isActive.value) {
     setRESTSaveContext({
       originLocation: "team-collection",
-      requestID: props.requestIndex,
+      requestID: props.requestIndex.toString(),
       req: props.request,
       folderPath: props.folderPath,
     })
@@ -409,7 +409,7 @@ const saveCurrentRequest = async (saveCtx: HoppRequestSaveContext | null) => {
         setRestReq(props.request)
         setRESTSaveContext({
           originLocation: "team-collection",
-          requestID: props.requestIndex,
+          requestID: props.requestIndex.toString(),
           req: props.request,
           folderPath: props.folderPath,
         })

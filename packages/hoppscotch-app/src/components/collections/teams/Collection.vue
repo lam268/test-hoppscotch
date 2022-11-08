@@ -189,7 +189,7 @@
           :parent-collection="collection"
           :folder-index="-1"
           :folder-name="collection.title"
-          :request-index="index.toString()"
+          :request-index="index"
           :save-request="saveRequest"
           :collection-i-d="collection.id"
           :collections-type="collectionsType"
@@ -240,10 +240,6 @@ import IconFolder from "~icons/lucide/folder"
 import IconFolderOpen from "~icons/lucide/folder-open"
 import { defineComponent, ref } from "vue"
 import * as E from "fp-ts/Either"
-import {
-  getCompleteCollectionTree,
-  teamCollToHoppRESTColl,
-} from "~/helpers/backend/helpers"
 import { moveRESTTeamRequest } from "~/helpers/backend/mutations/TeamRequest"
 import { useColorMode } from "@composables/theming"
 import { useI18n } from "@composables/i18n"
@@ -326,22 +322,18 @@ export default defineComponent({
     },
   },
   methods: {
-    async exportCollection() {
+    exportCollection() {
       this.exportLoading = true
 
-      const result = await getCompleteCollectionTree(this.collection.id)()
+      const hoppColl = this.$props.collection
 
-      if (E.isLeft(result)) {
+      if (!hoppColl) {
         this.toast.error(this.t("error.something_went_wrong").toString())
-        console.log(result.left)
         this.exportLoading = false
         this.options!.tippy.hide()
-
         return
       }
-
-      const hoppColl = teamCollToHoppRESTColl(result.right)
-
+      hoppColl.v = 1
       const collectionJSON = JSON.stringify(hoppColl)
 
       const file = new Blob([collectionJSON], { type: "application/json" })
@@ -349,7 +341,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${hoppColl.name}.json`
+      a.download = `${hoppColl.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())

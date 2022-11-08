@@ -269,7 +269,7 @@ export default class NewTeamCollectionAdapter {
 
   private async initialize() {
     await this.loadRootCollections()
-    this.registerSubscriptions()
+    // this.registerSubscriptions()
   }
 
   /**

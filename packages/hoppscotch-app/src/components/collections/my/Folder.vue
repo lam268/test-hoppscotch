@@ -147,7 +147,7 @@
       <div class="flex flex-col flex-1 truncate">
         <!-- Referring to this component only (this is recursive) -->
         <Folder
-          v-for="(subFolder, subFolderIndex) in folder.folders"
+          v-for="(subFolder, subFolderIndex) in folder.children"
           :key="`subFolder-${subFolderIndex}`"
           :folder="subFolder"
           :folder-index="subFolderIndex"
@@ -172,7 +172,7 @@
           :request="request"
           :collection-index="collectionIndex"
           :folder-index="folderIndex"
-          :folder-name="folder.name"
+          :folder-name="folder.title"
           :folder-path="folderPath"
           :request-index="index"
           :picked="picked"
@@ -185,8 +185,8 @@
         />
         <div
           v-if="
-            folder.folders &&
-            folder.folders.length === 0 &&
+            folder.children &&
+            folder.children.length === 0 &&
             folder.requests &&
             folder.requests.length === 0
           "
@@ -302,7 +302,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${this.folder.name}.json`
+      a.download = `${this.folder.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())
@@ -317,7 +317,7 @@ export default defineComponent({
           picked: {
             pickedType: "my-folder",
             collectionIndex: this.collectionIndex,
-            folderName: this.folder.name,
+            folderName: this.folder.title,
             folderPath: this.folderPath,
           },
         })
