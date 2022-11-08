@@ -220,7 +220,6 @@ import { cloneDeep } from "lodash-es"
 import { defineComponent, markRaw } from "vue"
 import { makeCollection } from "@hoppscotch/data"
 import { useColorMode } from "@composables/theming"
-import * as E from "fp-ts/Either"
 import CollectionsMyCollection from "./my/Collection.vue"
 import CollectionsTeamsCollection from "./teams/Collection.vue"
 import { currentUser$ } from "~/helpers/fb/auth"
@@ -243,13 +242,6 @@ import {
   getRESTSaveContext,
 } from "~/newstore/RESTSession"
 import { useReadonlyStream, useStreamSubscriber } from "@composables/stream"
-import { runMutation } from "~/helpers/backend/GQLClient"
-import {
-  CreateRequestInCollectionDocument,
-  DeleteCollectionDocument,
-  RenameCollectionDocument,
-  UpdateRequestDocument,
-} from "~/helpers/backend/graphql"
 import { useToast } from "@composables/toast"
 import { useI18n } from "~/composables/i18n"
 import { useAxios } from "@composables/axios"
@@ -467,11 +459,12 @@ export default defineComponent({
       }
     },
     // Intented to be called by CollectionEdit modal submit event
-    updateEditingCollection(newName) {
+    async updateEditingCollection(newName) {
       if (!newName) {
         this.toast.error(this.t("collection.invalid_name"))
         return
       }
+      const axios = useAxios()
       if (this.collectionsType.type === "my-collections") {
         const collectionUpdated = {
           ...this.editingCollection,
@@ -485,21 +478,30 @@ export default defineComponent({
         this.collectionsType.selectedTeam.myRole !== "VIEWER"
       ) {
         this.modalLoadingState = true
-
-        runMutation(RenameCollectionDocument, {
-          collectionID: this.editingCollection.id,
-          newTitle: newName,
-        })().then((result) => {
+        const collectionUpdated = {
+          ...this.editingCollection,
+          title: newName,
+        }
+        try {
+          const updatedCollection = await axios.put(
+            `/collections/${this.editingCollection.id}`,
+            {
+              teamId: this.collectionsType.selectedTeam.id,
+              newCollectionJson: collectionUpdated,
+            }
+          )
           this.modalLoadingState = false
-
-          if (E.isLeft(result)) {
-            this.toast.error(this.t("error.something_went_wrong"))
-            console.error(result.left.error)
-          } else {
+          if (updatedCollection) {
+            this.filteredCollections[this.$data.editingCollectionIndex] =
+              collectionUpdated
             this.toast.success(this.t("collection.renamed"))
-            this.displayModalEdit(false)
+          } else {
+            this.toast.error(this.t("error.something_went_wrong"))
           }
-        })
+          this.displayModalEdit(false)
+        } catch (err) {
+          this.toast.error(err?.response?.message)
+        }
       }
     },
     // Intended to be called by CollectionEditFolder modal submit event
@@ -718,7 +720,7 @@ export default defineComponent({
       this.$data.editingCollectionID = collectionID
       this.displayModalEditFolder(true)
     },
-    editRequest(payload) {
+    editRequest(payload, collectionID) {
       const {
         collectionIndex,
         folderIndex,
@@ -733,6 +735,7 @@ export default defineComponent({
       this.$data.editingRequest = request
       this.$data.editingRequestIndex = requestIndex
       this.editingFolderPath = folderPath
+      this.$data.editingCollectionID = collectionID
       this.$emit("select-request", requestIndex)
       this.displayModalEditRequest(true)
     },
@@ -999,22 +1002,43 @@ export default defineComponent({
         }
       }
     },
-    duplicateRequest({ folderPath, request, collectionID }) {
+    async duplicateRequest({ collectionID, request, folderPath }) {
+      const axios = useAxios()
+      const pathTree = folderPath.split("/").map((x) => parseInt(x))
+      let targetJson = this.filteredCollections[pathTree[0]]
+      for (let i = 1; i < pathTree.length - 1; i++) {
+        targetJson = targetJson.children[pathTree[i]]
+      }
       if (this.collectionsType.type === "team-collections") {
         const newReq = {
           ...cloneDeep(request),
           name: `${request.name} - ${this.t("action.duplicate")}`,
         }
+        newReq.id = targetJson.requests.length
+        targetJson.requests.push(newReq)
 
-        // Error handling ?
-        runMutation(CreateRequestInCollectionDocument, {
-          collectionID,
-          data: {
-            request: JSON.stringify(newReq),
-            teamID: this.collectionsType.selectedTeam.id,
-            title: `${request.name} - ${this.t("action.duplicate")}`,
-          },
-        })()
+        try {
+          const updatedCollection = await axios.put(
+            `/collections/${collectionID}`,
+            {
+              teamId: this.collectionsType.selectedTeam.id,
+              newCollectionJson: this.filteredCollections[pathTree[0]],
+            }
+          )
+          if (updatedCollection) {
+            setRESTRequest(newReq, {
+              originLocation: "team-collection",
+              requestID: newReq.id,
+              collectionID: this.$data.editingCollectionID,
+              teamID: this.collectionsType.selectedTeam.id,
+            })
+          } else {
+            targetJson.splice(newReq.id, 1)
+            this.toast.error(this.t("error.something_went_wrong"))
+          }
+        } catch (err) {
+          this.toast.error(err?.response?.message)
+        }
       } else if (this.collectionsType.type === "my-collections") {
         saveRESTRequestAs(folderPath, {
           ...cloneDeep(request),

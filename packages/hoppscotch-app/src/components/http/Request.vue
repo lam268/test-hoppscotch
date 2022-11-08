@@ -263,8 +263,6 @@ import { startPageProgress, completePageProgress } from "@modules/loadingbar"
 import { defineActionHandler } from "~/helpers/actions"
 import { copyToClipboard } from "~/helpers/utils/clipboard"
 import { createShortcode } from "~/helpers/backend/mutations/Shortcode"
-import { runMutation } from "~/helpers/backend/GQLClient"
-import { UpdateRequestDocument } from "~/helpers/backend/graphql"
 
 const t = useI18n()
 
@@ -523,33 +521,7 @@ const saveRequest = () => {
       saveRequest()
     }
   } else if (saveCtx.originLocation === "team-collection") {
-    const req = getRESTRequest()
-
-    // TODO: handle error case (NOTE: overwriteRequestTeams is async)
-    try {
-      runMutation(UpdateRequestDocument, {
-        requestID: saveCtx.requestID,
-        data: {
-          title: req.name,
-          request: JSON.stringify(req),
-        },
-      })().then((result) => {
-        if (E.isLeft(result)) {
-          toast.error(`${t("profile.no_permission")}`)
-        } else {
-          setRESTSaveContext({
-            originLocation: "team-collection",
-            requestID: saveCtx.requestID,
-            req: cloneDeep(req),
-          })
-          toast.success(`${t("request.saved")}`)
-        }
-      })
-    } catch (error) {
-      showSaveRequestModal.value = true
-      toast.error(`${t("error.something_went_wrong")}`)
-      console.error(error)
-    }
+    showSaveRequestModal.value = true
   }
 }
 

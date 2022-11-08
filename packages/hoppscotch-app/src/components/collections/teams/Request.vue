@@ -106,9 +106,9 @@
                   @click="
                     () => {
                       emit('duplicate-request', {
-                        request,
-                        requestIndex,
                         collectionID,
+                        request,
+                        folderPath,
                       })
                       hide()
                     }
@@ -235,8 +235,8 @@ const emit = defineEmits<{
     e: "duplicate-request",
     data: {
       collectionID: number | string
-      requestIndex: number
       request: HoppRESTRequest
+      folderPath: string
     }
   ): void
 }>()
