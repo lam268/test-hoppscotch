@@ -9,7 +9,7 @@
       <div class="flex flex-col">
         <input
           id="selectLabelAddFolder"
-          v-model="name"
+          v-model="title"
           v-focus
           class="input floating-input"
           placeholder=" "
@@ -63,28 +63,28 @@ export default defineComponent({
   },
   data() {
     return {
-      name: null,
+      title: null,
     }
   },
   watch: {
     show(isShowing: boolean) {
-      if (!isShowing) this.name = null
+      if (!isShowing) this.title = null
     },
   },
   methods: {
     addFolder() {
-      if (!this.name) {
+      if (!this.title) {
         this.toast.error(this.t("folder.invalid_name"))
         return
       }
       this.$emit("add-folder", {
-        name: this.name,
+        title: this.title,
         folder: this.folder,
         path: this.folderPath || `${this.collectionIndex}`,
       })
     },
     hideModal() {
-      this.name = null
+      this.title = null
       this.$emit("hide-modal")
     },
   },

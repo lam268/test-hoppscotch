@@ -8,7 +8,7 @@
       @drop="dragging = false"
       @dragleave="dragging = false"
       @dragend="dragging = false"
-      @contextmenu.prevent="options!.tippy.show()"
+      @contextmenu.prevent="options?.tippy.show()"
     >
       <span
         class="flex items-center justify-center px-4 cursor-pointer"
@@ -25,7 +25,7 @@
         @click="toggleShowChildren()"
       >
         <span class="truncate" :class="{ 'text-accent': isSelected }">
-          {{ folder.name ? folder.name : folder.title }}
+          {{ folder.title ? folder.title : folder.title }}
         </span>
       </span>
       <div class="flex">
@@ -102,12 +102,7 @@
                   :shortcut="['E']"
                   @click="
                     () => {
-                      $emit('edit-folder', {
-                        folder,
-                        folderIndex,
-                        collectionIndex,
-                        folderPath: '',
-                      })
+                      editFolder()
                       hide()
                     }
                   "
@@ -150,10 +145,13 @@
           :key="`subFolder-${subFolderIndex}`"
           :folder="subFolder"
           :folder-index="subFolderIndex"
+          :folder-path="`${folderPath}/${subFolderIndex}`"
+          :parent-collection="parentCollection"
           :collection-index="collectionIndex"
+          :collection-id="collectionID"
           :save-request="saveRequest"
           :collections-type="collectionsType"
-          :folder-path="`${folderPath}/${subFolderIndex}`"
+          :is-filtered="isFiltered"
           :picked="picked"
           :loading-collection-i-ds="loadingCollectionIDs"
           @add-request="$emit('add-request', $event)"
@@ -170,11 +168,13 @@
         <CollectionsTeamsRequest
           v-for="(request, index) in folder.requests"
           :key="`request-${index}`"
-          :request="request.request"
+          :request="request"
           :collection-index="collectionIndex"
+          :folder-path="`${folderPath}/${index}`"
+          :parent-collection="parentCollection"
           :folder-index="folderIndex"
-          :folder-name="folder.name"
-          :request-index="request.id"
+          :folder-name="folder.title"
+          :request-index="index"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :picked="picked"
@@ -241,11 +241,13 @@ export default defineComponent({
   props: {
     folder: { type: Object, default: () => ({}) },
     folderIndex: { type: Number, default: null },
-    collectionIndex: { type: Number, default: null },
     folderPath: { type: String, default: null },
+    parentCollection: { type: Object, default: () => ({}) },
+    collectionIndex: { type: Number, default: null },
+    collectionID: { type: String, default: null },
     saveRequest: Boolean,
-    isFiltered: Boolean,
     collectionsType: { type: Object, default: () => ({}) },
+    isFiltered: Boolean,
     picked: { type: Object, default: () => ({}) },
     loadingCollectionIDs: { type: Array, default: () => [] },
   },
@@ -299,7 +301,7 @@ export default defineComponent({
       return (
         this.picked &&
         this.picked.pickedType === "teams-folder" &&
-        this.picked.folderID === this.folder.id
+        this.picked.folderPath === this.folderPath
       )
     },
     getCollectionIcon() {
@@ -333,7 +335,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${hoppColl.name}.json`
+      a.download = `${hoppColl.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())
@@ -352,10 +354,10 @@ export default defineComponent({
         this.$emit("select", {
           picked: {
             pickedType: "teams-folder",
-            folderID: this.folder.id,
+            folderPath: this.folderPath,
           },
+          parentCollection: this.$props.parentCollection,
         })
-
       this.$emit("expand-collection", this.$props.folder.id)
       this.showChildren = !this.showChildren
     },
@@ -363,6 +365,16 @@ export default defineComponent({
       this.$emit("remove-folder", {
         collectionsType: this.collectionsType,
         folder: this.folder,
+        folderPath: this.folderPath,
+        folderIndex: this.folderIndex,
+      })
+    },
+
+    editFolder() {
+      this.$emit("edit-folder", {
+        folder: this.folder,
+        folderPath: this.folderPath,
+        folderIndex: this.folderIndex,
       })
     },
     expandCollection(collectionID: number) {

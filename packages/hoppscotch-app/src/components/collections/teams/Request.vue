@@ -2,12 +2,12 @@
   <div class="flex flex-col" :class="[{ 'bg-primaryLight': dragging }]">
     <div
       class="flex items-stretch group"
-      draggable="true"
+      draggable="false"
       @dragstart="dragStart"
       @dragover.stop
       @dragleave="dragging = false"
       @dragend="dragging = false"
-      @contextmenu.prevent="options.tippy.show()"
+      @contextmenu.prevent="options?.tippy.show()"
     >
       <span
         class="flex items-center justify-center w-16 px-2 truncate cursor-pointer"
@@ -57,7 +57,7 @@
         />
         <span>
           <tippy
-            v-if="collectionsType.selectedTeam.myRole !== 'VIEWER'"
+            v-if="collectionsType?.selectedTeam?.myRole !== 'VIEWER'"
             ref="options"
             interactive
             trigger="click"
@@ -92,6 +92,7 @@
                         folderName,
                         request,
                         requestIndex,
+                        folderPath,
                       })
                       hide()
                     }
@@ -105,9 +106,9 @@
                   @click="
                     () => {
                       emit('duplicate-request', {
-                        request,
-                        requestIndex,
                         collectionID,
+                        request,
+                        folderPath,
                       })
                       hide()
                     }
@@ -159,7 +160,6 @@ import {
   safelyExtractRESTRequest,
   translateToNewRequest,
 } from "@hoppscotch/data"
-import * as E from "fp-ts/Either"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { useReadonlyStream } from "@composables/stream"
@@ -172,25 +172,29 @@ import {
   getRESTRequest,
 } from "~/newstore/RESTSession"
 import { editRESTRequest } from "~/newstore/collections"
-import { runMutation } from "~/helpers/backend/GQLClient"
-import { Team, UpdateRequestDocument } from "~/helpers/backend/graphql"
+import { Team } from "~/helpers/backend/graphql"
 import { HoppRequestSaveContext } from "~/helpers/types/HoppRequestSaveContext"
+import { TeamCollection } from "~/helpers/teams/TeamCollection"
+import { useAxios } from "~/composables/axios"
 
 const props = defineProps<{
   request: HoppRESTRequest
   collectionIndex: number
+  folderPath: string
+  parentCollection: TeamCollection
   folderIndex: number
-  folderName?: string
-  requestIndex: string
+  folderName: string
+  requestIndex: number
   saveRequest: boolean
   collectionsType: {
     type: "my-collections" | "team-collections"
     selectedTeam: Team | undefined
   }
-  collectionID: string
+  collectionID: number
   picked?: {
     pickedType: string
-    requestID: string
+    requestID: number
+    folderPath: string
   }
 }>()
 
@@ -201,7 +205,7 @@ const emit = defineEmits<{
       | {
           picked: {
             pickedType: string
-            requestID: string
+            requestID: number
           }
         }
       | undefined
@@ -211,7 +215,7 @@ const emit = defineEmits<{
     e: "remove-request",
     data: {
       folderPath: string | undefined
-      requestIndex: string
+      requestIndex: number
     }
   ): void
 
@@ -220,9 +224,10 @@ const emit = defineEmits<{
     data: {
       collectionIndex: number
       folderIndex: number
-      folderName: string | undefined
-      requestIndex: string
+      folderName: string
       request: HoppRESTRequest
+      requestIndex: number
+      folderPath: string
     }
   ): void
 
@@ -230,8 +235,8 @@ const emit = defineEmits<{
     e: "duplicate-request",
     data: {
       collectionID: number | string
-      requestIndex: string
       request: HoppRESTRequest
+      folderPath: string
     }
   ): void
 }>()
@@ -263,14 +268,15 @@ const isSelected = computed(
   () =>
     props.picked &&
     props.picked.pickedType === "teams-request" &&
-    props.picked.requestID === props.requestIndex
+    props.picked.requestID === props.requestIndex &&
+    props.picked.folderPath === props.folderPath
 )
 
 const isActive = computed(
   () =>
     active.value &&
     active.value.originLocation === "team-collection" &&
-    active.value.requestID === props.requestIndex
+    active.value.folderPath === props.folderPath
 )
 
 const dragStart = ({ dataTransfer }: DragEvent) => {
@@ -282,7 +288,7 @@ const dragStart = ({ dataTransfer }: DragEvent) => {
 
 const removeRequest = () => {
   emit("remove-request", {
-    folderPath: props.folderName,
+    folderPath: props.folderPath,
     requestIndex: props.requestIndex,
   })
 }
@@ -302,8 +308,9 @@ const setRestReq = (request: HoppRESTRequest) => {
     ),
     {
       originLocation: "team-collection",
-      requestID: props.requestIndex,
+      requestID: props.requestIndex.toString(),
       req: request,
+      folderPath: props.folderPath,
     }
   )
 }
@@ -315,7 +322,9 @@ const selectRequest = () => {
       picked: {
         pickedType: "teams-request",
         requestID: props.requestIndex,
+        folderPath: props.folderPath,
       },
+      parentCollection: props.parentCollection,
     })
   } else if (isEqualHoppRESTRequest(props.request, getDefaultRESTRequest())) {
     confirmChange.value = false
@@ -325,14 +334,24 @@ const selectRequest = () => {
   } else {
     const currentReqWithNoChange = active.value.req
     const currentFullReq = getRESTRequest()
-
+    currentFullReq.id = active.value.req?.id
     // Check if whether user clicked the same request or not
     if (!isActive.value && currentReqWithNoChange) {
       // Check if there is any changes done on the current request
       if (isEqualHoppRESTRequest(currentReqWithNoChange, currentFullReq)) {
         setRestReq(props.request)
+        setRESTSaveContext({
+          originLocation: "team-collection",
+          requestID: props.requestIndex.toString(),
+          req: props.request,
+          folderPath: props.folderPath,
+        })
       } else {
-        confirmChange.value = true
+        if (props.folderPath[0] !== active.value.folderPath[0]) {
+          showSaveRequestModal.value = true
+        } else {
+          confirmChange.value = true
+        }
       }
     } else {
       setRESTSaveContext(null)
@@ -353,39 +372,54 @@ const discardRequestChange = () => {
   if (!isActive.value) {
     setRESTSaveContext({
       originLocation: "team-collection",
-      requestID: props.requestIndex,
+      requestID: props.requestIndex.toString(),
       req: props.request,
+      folderPath: props.folderPath,
     })
   }
   confirmChange.value = false
 }
 
-const saveCurrentRequest = (saveCtx: HoppRequestSaveContext | null) => {
+const saveCurrentRequest = async (saveCtx: HoppRequestSaveContext | null) => {
+  const axios = useAxios()
   if (!saveCtx) {
     showSaveRequestModal.value = true
     return
   }
   if (saveCtx.originLocation === "team-collection") {
+    const pathTree =
+      active.value?.folderPath.split("/").map((x) => parseInt(x)) ?? []
     const req = getRESTRequest()
+    saveCtx.req = req
+    saveCtx.req.id = saveCtx.requestID
+    let currentCollection = props.parentCollection
+    for (let i = 1; i < pathTree.length - 1; i++) {
+      currentCollection = currentCollection.children[pathTree[i]]
+    }
+    currentCollection.requests[pathTree[pathTree.length - 1]] = saveCtx.req
     try {
-      runMutation(UpdateRequestDocument, {
-        requestID: saveCtx.requestID,
-        data: {
-          title: req.name,
-          request: JSON.stringify(req),
-        },
-      })().then((result) => {
-        if (E.isLeft(result)) {
-          toast.error(`${t("profile.no_permission")}`)
-        } else {
-          toast.success(`${t("request.saved")}`)
+      const updatedCollection = await axios.put(
+        `/collections/${props.collectionID}`,
+        {
+          teamId: props.collectionsType?.selectedTeam?.id,
+          newCollectionJson: currentCollection,
         }
-      })
-      setRestReq(props.request)
-    } catch (error) {
-      showSaveRequestModal.value = true
-      toast.error(`${t("error.something_went_wrong")}`)
-      console.error(error)
+      )
+      if (updatedCollection) {
+        setRestReq(props.request)
+        setRESTSaveContext({
+          originLocation: "team-collection",
+          requestID: props.requestIndex.toString(),
+          req: props.request,
+          folderPath: props.folderPath,
+        })
+        showSaveRequestModal.value = false
+      } else {
+        toast.error(t("error.something_went_wrong"))
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message)
+      showSaveRequestModal.value = false
     }
   } else if (saveCtx.originLocation === "user-collection") {
     try {

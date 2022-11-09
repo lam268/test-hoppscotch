@@ -8,7 +8,7 @@
       @drop="dragging = false"
       @dragleave="dragging = false"
       @dragend="dragging = false"
-      @contextmenu.prevent="options!.tippy.show()"
+      @contextmenu.prevent="options?.tippy.show()"
     >
       <span
         class="flex items-center justify-center px-4 cursor-pointer"
@@ -154,6 +154,7 @@
         class="bg-dividerLight cursor-nsResize flex ml-5.5 transform transition w-1 hover:bg-dividerDark hover:scale-x-125"
         @click="toggleShowChildren()"
       ></div>
+
       <div class="flex flex-col flex-1 truncate">
         <CollectionsTeamsFolder
           v-for="(folder, index) in collection.children"
@@ -161,7 +162,9 @@
           :folder="folder"
           :folder-index="index"
           :folder-path="`${collectionIndex}/${index}`"
+          :parent-collection="collection"
           :collection-index="collectionIndex"
+          :collection-id="collection.id"
           :save-request="saveRequest"
           :collections-type="collectionsType"
           :is-filtered="isFiltered"
@@ -180,11 +183,13 @@
         <CollectionsTeamsRequest
           v-for="(request, index) in collection.requests"
           :key="`request-${index}`"
-          :request="request.request"
+          :request="request"
           :collection-index="collectionIndex"
+          :folder-path="`${collectionIndex}/${index}`"
+          :parent-collection="collection"
           :folder-index="-1"
-          :folder-name="collection.name"
-          :request-index="request.id"
+          :folder-name="collection.title"
+          :request-index="index"
           :save-request="saveRequest"
           :collection-i-d="collection.id"
           :collections-type="collectionsType"
@@ -194,10 +199,7 @@
           @remove-request="$emit('remove-request', $event)"
           @duplicate-request="$emit('duplicate-request', $event)"
         />
-        <div
-          v-if="loadingCollectionIDs.includes(collection.id)"
-          class="flex flex-col items-center justify-center p-4"
-        >
+        <div v-if="false" class="flex flex-col items-center justify-center p-4">
           <SmartSpinner class="my-4" />
           <span class="text-secondaryLight">{{ t("state.loading") }}</span>
         </div>
@@ -238,17 +240,12 @@ import IconFolder from "~icons/lucide/folder"
 import IconFolderOpen from "~icons/lucide/folder-open"
 import { defineComponent, ref } from "vue"
 import * as E from "fp-ts/Either"
-import {
-  getCompleteCollectionTree,
-  teamCollToHoppRESTColl,
-} from "~/helpers/backend/helpers"
 import { moveRESTTeamRequest } from "~/helpers/backend/mutations/TeamRequest"
 import { useColorMode } from "@composables/theming"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { TippyComponent } from "vue-tippy"
 import SmartItem from "@components/smart/Item.vue"
-
 export default defineComponent({
   props: {
     collectionIndex: { type: Number, default: null },
@@ -325,22 +322,18 @@ export default defineComponent({
     },
   },
   methods: {
-    async exportCollection() {
+    exportCollection() {
       this.exportLoading = true
 
-      const result = await getCompleteCollectionTree(this.collection.id)()
+      const hoppColl = this.$props.collection
 
-      if (E.isLeft(result)) {
+      if (!hoppColl) {
         this.toast.error(this.t("error.something_went_wrong").toString())
-        console.log(result.left)
         this.exportLoading = false
         this.options!.tippy.hide()
-
         return
       }
-
-      const hoppColl = teamCollToHoppRESTColl(result.right)
-
+      hoppColl.v = 1
       const collectionJSON = JSON.stringify(hoppColl)
 
       const file = new Blob([collectionJSON], { type: "application/json" })
@@ -348,7 +341,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${hoppColl.name}.json`
+      a.download = `${hoppColl.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())
@@ -379,6 +372,7 @@ export default defineComponent({
             pickedType: "teams-collection",
             collectionID: this.collection.id,
           },
+          parentCollection: this.$props.collection,
         })
 
       this.$emit("expand-collection", this.collection.id)

@@ -23,7 +23,6 @@ export function initializeFirebase() {
   if (!initialized) {
     try {
       initializeApp(firebaseConfig)
-
       initAuth()
       initSettings()
       initCollections()

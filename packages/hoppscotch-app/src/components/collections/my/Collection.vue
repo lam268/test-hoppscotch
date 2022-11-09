@@ -25,7 +25,7 @@
         @click="toggleShowChildren()"
       >
         <span class="truncate" :class="{ 'text-accent': isSelected }">
-          {{ collection.name }}
+          {{ collection.title }}
         </span>
       </span>
       <div class="flex">
@@ -155,7 +155,7 @@
       ></div>
       <div class="flex flex-col flex-1 truncate">
         <CollectionsMyFolder
-          v-for="(folder, index) in collection.folders"
+          v-for="(folder, index) in collection.children"
           :key="`folder-${index}`"
           :folder="folder"
           :folder-index="index"
@@ -180,7 +180,7 @@
           :request="request"
           :collection-index="collectionIndex"
           :folder-index="-1"
-          :folder-name="collection.name"
+          :folder-name="collection.title"
           :folder-path="`${collectionIndex}`"
           :request-index="index"
           :save-request="saveRequest"
@@ -193,8 +193,8 @@
         />
         <div
           v-if="
-            (collection.folders == undefined ||
-              collection.folders.length === 0) &&
+            (collection.children == undefined ||
+              collection.children.length === 0) &&
             (collection.requests == undefined ||
               collection.requests.length === 0)
           "
@@ -316,7 +316,7 @@ export default defineComponent({
       const url = URL.createObjectURL(file)
       a.href = url
 
-      a.download = `${this.collection.name}.json`
+      a.download = `${this.collection.title}.json`
       document.body.appendChild(a)
       a.click()
       this.toast.success(this.t("state.download_started").toString())

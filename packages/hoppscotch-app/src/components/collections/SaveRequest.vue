@@ -63,7 +63,13 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue"
 import * as E from "fp-ts/Either"
-import { HoppGQLRequest, isHoppRESTRequest } from "@hoppscotch/data"
+import {
+  HoppGQLRequest,
+  HoppRESTRequest,
+  isHoppRESTRequest,
+  safelyExtractRESTRequest,
+  translateToNewRequest,
+} from "@hoppscotch/data"
 import { cloneDeep } from "lodash-es"
 import {
   editGraphqlRequest,
@@ -76,14 +82,15 @@ import {
   getRESTRequest,
   setRESTSaveContext,
   useRESTRequestName,
+  setRESTRequest,
+  getDefaultRESTRequest,
 } from "~/newstore/RESTSession"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { runMutation } from "~/helpers/backend/GQLClient"
-import {
-  CreateRequestInCollectionDocument,
-  UpdateRequestDocument,
-} from "~/helpers/backend/graphql"
+import { CreateRequestInCollectionDocument } from "~/helpers/backend/graphql"
+import { TeamCollection } from "~/helpers/teams/TeamCollection"
+import { useAxios } from "~/composables/axios"
 
 const t = useI18n()
 
@@ -116,10 +123,11 @@ type Picked =
   | {
       pickedType: "teams-request"
       requestID: string
+      folderPath: string
     }
   | {
       pickedType: "teams-folder"
-      folderID: string
+      folderPath: string
     }
   | {
       pickedType: "teams-collection"
@@ -149,6 +157,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const axios = useAxios()
 
 // TODO: Use a better implementation with computed ?
 // This implementation can't work across updates to mode prop (which won't happen tho)
@@ -168,6 +177,7 @@ const collectionsType = ref<CollectionType>({
 
 // TODO: Figure this type out
 const picked = ref<Picked | null>(null)
+const currentCollection = ref<TeamCollection | null>(null)
 
 // Resets
 watch(
@@ -189,13 +199,31 @@ const onUpdateCollType = (newCollType: CollectionType) => {
   collectionsType.value = newCollType
 }
 
-const onSelect = ({ picked: pickedVal }: { picked: Picked | null }) => {
-  picked.value = pickedVal
+const onSelect = ($event: any) => {
+  picked.value = $event.picked
+  currentCollection.value = $event.parentCollection
 }
-
 const hideModal = () => {
   picked.value = null
   emit("hide-modal")
+}
+const setRestReq = (
+  request: HoppRESTRequest,
+  requestID: string,
+  folderPath: string
+) => {
+  setRESTRequest(
+    safelyExtractRESTRequest(
+      translateToNewRequest(request),
+      getDefaultRESTRequest()
+    ),
+    {
+      originLocation: "team-collection",
+      requestID: requestID,
+      req: request,
+      folderPath: folderPath,
+    }
+  )
 }
 
 const saveRequestAs = async () => {
@@ -281,26 +309,38 @@ const saveRequestAs = async () => {
     if (collectionsType.value.type !== "team-collections")
       throw new Error("Collections Type mismatch")
 
-    runMutation(UpdateRequestDocument, {
-      requestID: picked.value.requestID,
-      data: {
-        request: JSON.stringify(requestUpdated),
-        title: requestUpdated.name,
-      },
-    })().then((result) => {
-      if (E.isLeft(result)) {
-        toast.error(`${t("profile.no_permission")}`)
-        throw new Error(`${result.left}`)
-      } else {
-        requestSaved()
-      }
-    })
+    let targetJson = currentCollection.value
+    const pathTree = picked.value.folderPath.split("/").map((x) => parseInt(x))
+    for (let i = 1; i < pathTree.length - 1; i++) {
+      if (targetJson) targetJson = targetJson.children[pathTree[i]]
+    }
+    if (targetJson) {
+      requestUpdated.id = picked.value.requestID
+      targetJson.requests[pathTree[pathTree.length - 1]] = requestUpdated
+    }
 
-    setRESTSaveContext({
-      originLocation: "team-collection",
-      requestID: picked.value.requestID,
-      req: cloneDeep(requestUpdated),
-    })
+    try {
+      const updatedCollection = await axios.put(
+        `/collections/${currentCollection.value?.id}`,
+        {
+          teamId: collectionsType.value.selectedTeam.id,
+          newCollectionJson: currentCollection.value,
+        }
+      )
+      if (updatedCollection) {
+        setRestReq(
+          requestUpdated,
+          picked.value.requestID,
+          picked.value.folderPath
+        )
+        requestSaved()
+      } else {
+        toast.error(`${t("profile.no_permission")}`)
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message)
+      hideModal()
+    }
   } else if (picked.value.pickedType === "teams-folder") {
     if (!isHoppRESTRequest(requestUpdated))
       throw new Error("requestUpdated is not a REST Request")
@@ -325,8 +365,9 @@ const saveRequestAs = async () => {
         originLocation: "team-collection",
         requestID: result.right.createRequestInCollection.id,
         teamID: collectionsType.value.selectedTeam.id,
-        collectionID: picked.value.folderID,
+        // collectionID: picked.value.folderID,
         req: cloneDeep(requestUpdated),
+        folderPath: picked.value.folderPath,
       })
 
       requestSaved()
@@ -337,7 +378,6 @@ const saveRequestAs = async () => {
 
     if (collectionsType.value.type !== "team-collections")
       throw new Error("Collections Type mismatch")
-
     const result = await runMutation(CreateRequestInCollectionDocument, {
       collectionID: picked.value.collectionID,
       data: {
@@ -355,8 +395,9 @@ const saveRequestAs = async () => {
         originLocation: "team-collection",
         requestID: result.right.createRequestInCollection.id,
         teamID: collectionsType.value.selectedTeam.id,
-        collectionID: picked.value.collectionID,
+        // collectionID: picked.value.collectionID,
         req: cloneDeep(requestUpdated),
+        folderPath: picked.value.collectionID,
       })
 
       requestSaved()

@@ -9,7 +9,7 @@
       <div class="flex flex-col">
         <input
           id="selectLabelAdd"
-          v-model="name"
+          v-model="title"
           v-focus
           class="input floating-input"
           placeholder=" "
@@ -60,26 +60,26 @@ export default defineComponent({
   },
   data() {
     return {
-      name: null,
+      title: null,
     }
   },
   watch: {
     show(isShowing: boolean) {
       if (!isShowing) {
-        this.name = null
+        this.title = null
       }
     },
   },
   methods: {
     addNewCollection() {
-      if (!this.name) {
+      if (!this.title) {
         this.toast.error(this.t("collection.invalid_name"))
         return
       }
-      this.$emit("submit", this.name)
+      this.$emit("submit", this.title)
     },
     hideModal() {
-      this.name = null
+      this.title = null
       this.$emit("hide-modal")
     },
   },

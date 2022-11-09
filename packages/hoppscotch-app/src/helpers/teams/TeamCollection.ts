@@ -6,6 +6,6 @@ import { TeamRequest } from "./TeamRequest"
 export interface TeamCollection {
   id: string
   title: string
-  children: TeamCollection[] | null
-  requests: TeamRequest[] | null
+  children: TeamCollection[]
+  requests: TeamRequest[]
 }

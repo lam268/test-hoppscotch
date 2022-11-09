@@ -1,41 +1,25 @@
 import {
-  User,
-  getAuth,
-  onAuthStateChanged,
-  onIdTokenChanged,
-  signInWithPopup,
-  GoogleAuthProvider,
-  GithubAuthProvider,
-  OAuthProvider,
-  signInWithEmailAndPassword as signInWithEmailAndPass,
-  isSignInWithEmailLink as isSignInWithEmailLinkFB,
-  fetchSignInMethodsForEmail,
-  sendSignInLinkToEmail,
-  signInWithEmailLink as signInWithEmailLinkFB,
   ActionCodeSettings,
-  signOut,
-  linkWithCredential,
   AuthCredential,
   AuthError,
-  UserCredential,
-  updateProfile,
-  updateEmail,
-  sendEmailVerification,
+  fetchSignInMethodsForEmail,
+  getAuth,
+  GoogleAuthProvider,
+  isSignInWithEmailLink as isSignInWithEmailLinkFB,
+  linkWithCredential,
+  OAuthProvider,
   reauthenticateWithCredential,
+  sendEmailVerification,
+  sendSignInLinkToEmail,
+  signInWithEmailLink as signInWithEmailLinkFB,
+  updateEmail,
+  updateProfile,
+  User,
 } from "firebase/auth"
-import {
-  onSnapshot,
-  getFirestore,
-  setDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore"
+import { doc, getFirestore, updateDoc } from "firebase/firestore"
 import { BehaviorSubject, filter, Subject, Subscription } from "rxjs"
-import {
-  setLocalConfig,
-  getLocalConfig,
-  removeLocalConfig,
-} from "~/newstore/localpersistence"
+import { getLocalConfig, removeLocalConfig } from "~/newstore/localpersistence"
+import { currentUserInfo$ } from "../teams/BackendUserInfo"
 
 export type HoppUser = User & {
   provider?: string
@@ -88,94 +72,98 @@ export const waitProbableLoginToConfirm = () =>
  * Initializes the firebase authentication related subjects
  */
 export function initAuth() {
-  const auth = getAuth()
-  const firestore = getFirestore()
+  // const auth = getAuth()
+  // const firestore = getFirestore()
 
-  let extraSnapshotStop: (() => void) | null = null
+  // let extraSnapshotStop: (() => void) | null = null
 
   probableUser$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
+  currentUser$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
+  currentUserInfo$.next(JSON.parse(getLocalConfig("login_state") ?? "null"))
+  // onAuthStateChanged(auth, (user) => {/*  */
+  //   /** Whether the user was logged in before */
+  //   const wasLoggedIn = currentUser$.value !== null
+  //   console.log("user", user)
 
-  onAuthStateChanged(auth, (user) => {
-    /** Whether the user was logged in before */
-    const wasLoggedIn = currentUser$.value !== null
+  //   if (user) {
+  //     probableUser$.next(user)
+  //   } else {
+  //     probableUser$.next(null)
+  //     removeLocalConfig("login_state")
+  //   }
 
-    if (user) {
-      probableUser$.next(user)
-    } else {
-      probableUser$.next(null)
-      removeLocalConfig("login_state")
-    }
+  //   if (!user && extraSnapshotStop) {
+  //     extraSnapshotStop()
+  //     extraSnapshotStop = null
+  //   } else if (user) {
+  //     // Merge all the user info from all the authenticated providers
+  //     user.providerData.forEach((profile) => {
+  //       if (!profile) return
 
-    if (!user && extraSnapshotStop) {
-      extraSnapshotStop()
-      extraSnapshotStop = null
-    } else if (user) {
-      // Merge all the user info from all the authenticated providers
-      user.providerData.forEach((profile) => {
-        if (!profile) return
+  //       const us = {
+  //         updatedOn: new Date(),
+  //         provider: profile.providerId,
+  //         name: profile.displayName,
+  //         email: profile.email,
+  //         photoUrl: profile.photoURL,
+  //         uid: profile.uid,
+  //       }
 
-        const us = {
-          updatedOn: new Date(),
-          provider: profile.providerId,
-          name: profile.displayName,
-          email: profile.email,
-          photoUrl: profile.photoURL,
-          uid: profile.uid,
-        }
+  //       setDoc(doc(firestore, "users", user.uid), us, { merge: true }).catch(
+  //         (e) => console.error("error updating", us, e)
+  //       )
+  //     })
 
-        setDoc(doc(firestore, "users", user.uid), us, { merge: true }).catch(
-          (e) => console.error("error updating", us, e)
-        )
-      })
+  //     extraSnapshotStop = onSnapshot(
+  //       doc(firestore, "users", user.uid),
+  //       (doc) => {
+  //         const data = doc.data()
 
-      extraSnapshotStop = onSnapshot(
-        doc(firestore, "users", user.uid),
-        (doc) => {
-          const data = doc.data()
+  //         const userUpdate: HoppUser = user
 
-          const userUpdate: HoppUser = user
+  //         if (data) {
+  //           // Write extra provider data
+  //           userUpdate.provider = data.provider
+  //           userUpdate.accessToken = data.accessToken
+  //         }
 
-          if (data) {
-            // Write extra provider data
-            userUpdate.provider = data.provider
-            userUpdate.accessToken = data.accessToken
-          }
+  //         currentUser$.next(userUpdate)
+  //       }
+  //     )
+  //   }
+  //   currentUser$.next(user)
 
-          currentUser$.next(userUpdate)
-        }
-      )
-    }
-    currentUser$.next(user)
+  //   // User wasn't found before, but now is there (login happened)
+  //   if (!wasLoggedIn && user) {
+  //     authEvents$.next({
+  //       event: "login",
+  //       user: currentUser$.value!,
+  //     })
+  //   } else if (wasLoggedIn && !user) {
+  //     // User was found before, but now is not there (logout happened)
+  //     authEvents$.next({
+  //       event: "logout",
+  //     })
+  //   }
+  // })
 
-    // User wasn't found before, but now is there (login happened)
-    if (!wasLoggedIn && user) {
-      authEvents$.next({
-        event: "login",
-        user: currentUser$.value!,
-      })
-    } else if (wasLoggedIn && !user) {
-      // User was found before, but now is not there (logout happened)
-      authEvents$.next({
-        event: "logout",
-      })
-    }
-  })
+  // onIdTokenChanged(auth, async (user) => {
+  //   if (user) {
+  //     console.log("3")
+  //     authIdToken$.next(await user.getIdToken())
+  //     authEvents$.next({
+  //       event: "authTokenUpdate",
+  //       newToken: authIdToken$.value,
+  //       user: currentUser$.value!, // Force not-null because user is defined
+  //     })
 
-  onIdTokenChanged(auth, async (user) => {
-    if (user) {
-      authIdToken$.next(await user.getIdToken())
+  //     setLocalConfig("login_state", JSON.stringify(user))
+  //   } else {
+  //     console.log("null in initAuth")
 
-      authEvents$.next({
-        event: "authTokenUpdate",
-        newToken: authIdToken$.value,
-        user: currentUser$.value!, // Force not-null because user is defined
-      })
-
-      setLocalConfig("login_state", JSON.stringify(user))
-    } else {
-      authIdToken$.next(null)
-    }
-  })
+  //     authIdToken$.next(null)
+  //   }
+  // })
 }
 
 export function getAuthIDToken(): string | null {
@@ -186,34 +174,7 @@ export function getAuthIDToken(): string | null {
  * Sign user in with a popup using Google
  */
 export async function signInUserWithGoogle() {
-  return await signInWithPopup(getAuth(), new GoogleAuthProvider())
-}
-
-/**
- * Sign user in with a popup using Github
- */
-export async function signInUserWithGithub() {
-  return await signInWithPopup(
-    getAuth(),
-    new GithubAuthProvider().addScope("gist")
-  )
-}
-
-/**
- * Sign user in with a popup using Microsoft
- */
-export async function signInUserWithMicrosoft() {
-  return await signInWithPopup(getAuth(), new OAuthProvider("microsoft.com"))
-}
-
-/**
- * Sign user in with email and password
- */
-export async function signInWithEmailAndPassword(
-  email: string,
-  password: string
-) {
-  return await signInWithEmailAndPass(getAuth(), email, password)
+  window.location.href = `${import.meta.env.VITE_BACKEND_URL}/connect/google`
 }
 
 /**
@@ -251,12 +212,9 @@ export async function linkWithFBCredentialFromAuthError(error: unknown) {
 
   let user: User | null = null
 
+  //  TODO: Check this code in order to replace this function
   if (otherLinkedProviders.indexOf("google.com") >= -1) {
     user = (await signInUserWithGoogle()).user
-  } else if (otherLinkedProviders.indexOf("github.com") >= -1) {
-    user = (await signInUserWithGithub()).user
-  } else if (otherLinkedProviders.indexOf("microsoft.com") >= -1) {
-    user = (await signInUserWithMicrosoft()).user
   }
 
   // user is not null since going through each provider will return a user
@@ -300,8 +258,13 @@ export async function signInWithEmailLink(email: string, url: string) {
  */
 export async function signOutUser() {
   if (!currentUser$.value) throw new Error("No user has logged in")
-
-  await signOut(getAuth())
+  removeLocalConfig("login_state")
+  removeLocalConfig("access_token")
+  currentUser$.next(null)
+  probableUser$.next(null)
+  authEvents$.next({
+    event: "logout",
+  })
 }
 
 /**
@@ -390,14 +353,8 @@ async function reauthenticateUser() {
   const currentAuthMethod = currentUser$.value.provider
   let credential
   if (currentAuthMethod === "google.com") {
-    const result = await signInUserWithGithub()
-    credential = GithubAuthProvider.credentialFromResult(result)
-  } else if (currentAuthMethod === "github.com") {
     const result = await signInUserWithGoogle()
     credential = GoogleAuthProvider.credentialFromResult(result)
-  } else if (currentAuthMethod === "microsoft.com") {
-    const result = await signInUserWithMicrosoft()
-    credential = OAuthProvider.credentialFromResult(result)
   } else if (currentAuthMethod === "password") {
     const email = prompt(
       "Reauthenticate your account using your current email:"
@@ -427,8 +384,4 @@ async function reauthenticateUser() {
     console.error("error updating", e)
     throw e
   }
-}
-
-export function getGithubCredentialFromResult(result: UserCredential) {
-  return GithubAuthProvider.credentialFromResult(result)
 }

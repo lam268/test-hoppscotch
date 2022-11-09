@@ -76,16 +76,16 @@
 </template>
 
 <script setup lang="ts">
-import IconUsers from "~icons/lucide/users"
-import IconDone from "~icons/lucide/check"
-import { ref, watch } from "vue"
-import { GetMyTeamsQuery, Team } from "~/helpers/backend/graphql"
-import { currentUserInfo$ } from "~/helpers/teams/BackendUserInfo"
-import TeamListAdapter from "~/helpers/teams/TeamListAdapter"
-import { useReadonlyStream } from "@composables/stream"
 import { onLoggedIn } from "@composables/auth"
 import { useI18n } from "@composables/i18n"
+import { useReadonlyStream } from "@composables/stream"
+import { ref, watch } from "vue"
+import { GetMyTeamsQuery, Team } from "~/helpers/backend/graphql"
+import { currentUser$ } from "~/helpers/fb/auth"
+import TeamListAdapter from "~/helpers/teams/TeamListAdapter"
 import { useLocalState } from "~/newstore/localstate"
+import IconDone from "~icons/lucide/check"
+import IconUsers from "~icons/lucide/users"
 
 type TeamData = GetMyTeamsQuery["myTeams"][number]
 
@@ -109,8 +109,7 @@ const emit = defineEmits<{
   (e: "update-selected-team", team: TeamData | undefined): void
 }>()
 
-const currentUser = useReadonlyStream(currentUserInfo$, null)
-
+const currentUser = useReadonlyStream(currentUser$, null)
 const adapter = new TeamListAdapter(true)
 const myTeams = useReadonlyStream(adapter.teamList$, null)
 const REMEMBERED_TEAM_ID = useLocalState("REMEMBERED_TEAM_ID")
