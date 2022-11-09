@@ -333,19 +333,13 @@ const saveRequestAs = async () => {
           picked.value.requestID,
           picked.value.folderPath
         )
-        //   setRESTSaveContext({
-        //   originLocation: "team-collection",
-        //   requestID: props.requestIndex,
-        //   req: props.request,
-        //   folderPath: props.folderPath,
-        // })
         requestSaved()
       } else {
         toast.error(`${t("profile.no_permission")}`)
       }
     } catch (err) {
-      toast.error(err?.response?.message)
-      throw new Error(`${err?.response?.message}`)
+      toast.error(err?.response?.data?.message)
+      hideModal()
     }
   } else if (picked.value.pickedType === "teams-folder") {
     if (!isHoppRESTRequest(requestUpdated))
